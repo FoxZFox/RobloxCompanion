@@ -1,0 +1,310 @@
+import '../components/theme.css';
+import '../components/CommandCenter.css';
+import { FEATURES, isImplemented } from '../config/features';
+import { useAppState } from '../hooks/useAppState';
+import type { UiRequest } from '../models/messages';
+import { SmartJoinSettings } from './SmartJoinSettings';
+import { FlagSettings } from './FlagSettings';
+import { DataSettings } from './DataSettings';
+
+/**
+ * Settings (spec section 25).
+ *
+ * The feature list renders straight from config/features.ts, so a feature cannot exist
+ * without a switch, and a switch cannot exist for a feature that has not been built:
+ * anything above the shipped phase is rendered disabled with the phase named, rather
+ * than offered and quietly doing nothing.
+ */
+export function Options(): React.JSX.Element {
+  const { state, busy, send } = useAppState();
+
+  const dispatch = (request: UiRequest): void => {
+    void send(request);
+  };
+
+  if (!state) return <div className="rc-root"><div className="rc-empty">Loading…</div></div>;
+
+  const { settings } = state;
+
+  return (
+    <div className="rc-root" style={{ maxWidth: 720, margin: '0 auto', minHeight: '100vh' }}>
+      <header className="rc-header">
+        <h1 className="rc-header__title">
+          Roblox Companion
+          <div className="rc-header__sub">Settings</div>
+        </h1>
+      </header>
+
+      <div className="rc-body">
+        <Section title="General">
+          <Row
+            label="Clicking the toolbar icon opens"
+            hint="The in-page panel floats over Roblox itself and can be dragged anywhere; the side panel takes a fixed slice of the window; the popup closes as soon as you alt-tab. Chrome only lets the side panel be opened by the icon itself, so this setting controls the icon directly."
+          >
+            <select
+              className="rc-select"
+              value={settings.surface}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch({
+                  type: 'settings/set',
+                  patch: { surface: e.target.value as 'inpage' | 'panel' | 'popup' },
+                })
+              }
+            >
+              <option value="inpage">In-page panel (recommended)</option>
+              <option value="panel">Side Panel</option>
+              <option value="popup">Popup</option>
+            </select>
+          </Row>
+
+          <Toggle
+            label="Developer mode"
+            hint="Show API requests, ids and cache state for debugging."
+            checked={settings.developerMode}
+            disabled={busy}
+            onChange={(developerMode) => dispatch({ type: 'settings/set', patch: { developerMode } })}
+          />
+        </Section>
+
+        <Section title="Features">
+          {FEATURES.map((feature) => {
+            const available = isImplemented(feature);
+            return (
+              <Toggle
+                key={feature.key}
+                label={feature.label}
+                hint={
+                  available
+                    ? feature.description
+                    : `${feature.description} (arrives in phase ${feature.phase})`
+                }
+                checked={available && settings.features[feature.key]}
+                disabled={busy || !available}
+                onChange={(value) =>
+                  dispatch({ type: 'settings/set', patch: { features: { [feature.key]: value } } })
+                }
+              />
+            );
+          })}
+        </Section>
+
+        <SmartJoinSettings state={state} busy={busy} send={dispatch} />
+
+        <FlagSettings state={state} busy={busy} send={dispatch} />
+
+        <Section title="Server Browser">
+          <Row label="Sort by players">
+            <select
+              className="rc-select"
+              value={settings.serverBrowser.sort}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch({
+                  type: 'settings/set',
+                  patch: { serverBrowser: { sort: e.target.value as 'Asc' | 'Desc' } },
+                })
+              }
+            >
+              <option value="Asc">Lowest first</option>
+              <option value="Desc">Highest first</option>
+            </select>
+          </Row>
+
+          <Toggle
+            label="Exclude full servers"
+            hint="Applied by Roblox as a query parameter, so it also changes what can be paginated."
+            checked={settings.serverBrowser.excludeFull}
+            disabled={busy}
+            onChange={(excludeFull) =>
+              dispatch({ type: 'settings/set', patch: { serverBrowser: { excludeFull } } })
+            }
+          />
+
+          <Toggle
+            label="Hide servers marked clean"
+            hint="Useful when you are working through a list checking each server once."
+            checked={settings.serverBrowser.hideCleanServers}
+            disabled={busy}
+            onChange={(hideCleanServers) =>
+              dispatch({ type: 'settings/set', patch: { serverBrowser: { hideCleanServers } } })
+            }
+          />
+
+          <Row label="Maximum players" hint="0 turns this filter off.">
+            <input
+              type="number"
+              className="rc-input"
+              min={0}
+              value={settings.serverBrowser.maxPlayerCount}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch({
+                  type: 'settings/set',
+                  patch: { serverBrowser: { maxPlayerCount: Number(e.target.value) || 0 } },
+                })
+              }
+            />
+          </Row>
+
+          <Row
+            label="How many servers to load"
+            hint="Under 'lowest first' Roblox returns the emptiest servers on page one, so Join Lowest and Smart Join already have what they need there. More pages take longer and mainly help when browsing."
+          >
+            <select
+              className="rc-select"
+              value={settings.serverBrowser.scanPages}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch({
+                  type: 'settings/set',
+                  patch: { serverBrowser: { scanPages: Number(e.target.value) } },
+                })
+              }
+            >
+              <option value={1}>100 — fastest</option>
+              <option value={2}>200 — balanced</option>
+              <option value={3}>300</option>
+              <option value={5}>500 — as deep as Roblox allows</option>
+            </select>
+          </Row>
+        </Section>
+
+        <Section title="Avoid">
+          <Toggle
+            label="Skip exploiter servers"
+            hint="Applies to both the list and to Join Lowest / Random."
+            checked={settings.avoid.exploiterServers}
+            disabled={busy}
+            onChange={(exploiterServers) =>
+              dispatch({ type: 'settings/set', patch: { avoid: { exploiterServers } } })
+            }
+          />
+          <Toggle
+            label="Skip bugged servers"
+            checked={settings.avoid.buggedServers}
+            disabled={busy}
+            onChange={(buggedServers) =>
+              dispatch({ type: 'settings/set', patch: { avoid: { buggedServers } } })
+            }
+          />
+          <Toggle
+            label="Skip manually avoided servers"
+            checked={settings.avoid.manuallyAvoided}
+            disabled={busy}
+            onChange={(manuallyAvoided) =>
+              dispatch({ type: 'settings/set', patch: { avoid: { manuallyAvoided } } })
+            }
+          />
+          <Toggle
+            label="Skip servers with blacklisted players, when detectable"
+            hint="Roblox does not disclose who is in a public server, so this almost never applies today. It is here so it takes effect if that ever changes."
+            checked={settings.avoid.blacklistedPlayersWhenDetectable}
+            disabled={busy}
+            onChange={(value) =>
+              dispatch({
+                type: 'settings/set',
+                patch: { avoid: { blacklistedPlayersWhenDetectable: value } },
+              })
+            }
+          />
+        </Section>
+
+        <DataSettings state={state} busy={busy} send={dispatch} />
+
+        <Section title="Privacy">
+          <p className="rc-header__sub" style={{ marginTop: 0 }}>
+            Everything this extension records — server reports, history and your blacklist — is
+            stored on this machine only. There is no backend and nothing is uploaded.
+          </p>
+
+          <Toggle
+            label="Allow presence lookups"
+            hint="Looks up whether specific users are online. It queries third-party users, so it is off unless you ask for it."
+            checked={settings.privacy.allowPresenceChecks}
+            disabled={busy}
+            onChange={(allowPresenceChecks) =>
+              dispatch({ type: 'settings/set', patch: { privacy: { allowPresenceChecks } } })
+            }
+          />
+
+          <Toggle
+            label="Share reports with the community"
+            hint="Not available: V1 has no backend. Listed so its absence is explicit."
+            checked={false}
+            disabled
+            onChange={() => undefined}
+          />
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <section className="rc-card" style={{ marginBottom: 12 }}>
+      <div className="rc-card__label">{title}</div>
+      {children}
+    </section>
+  );
+}
+
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className="rc-field">
+      <span className="rc-field__label">{label}</span>
+      {children}
+      {hint ? <span className="rc-header__sub">{hint}</span> : null}
+    </div>
+  );
+}
+
+function Toggle({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (value: boolean) => void;
+}): React.JSX.Element {
+  return (
+    <label className="rc-field" style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span className="rc-field__label" style={{ fontSize: 12 }}>
+          {label}
+        </span>
+      </span>
+      {hint ? (
+        <span className="rc-header__sub" style={{ paddingLeft: 24 }}>
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}

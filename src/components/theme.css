@@ -1,0 +1,94 @@
+/*
+ * One token set for every surface: the injected page UI, the popup, the side panel,
+ * the dashboard and the options page.
+ *
+ * Roblox stamps `.dark-theme` / `.light-theme` on an ancestor of the page, so on
+ * roblox.com we follow whatever the user already chose there. Off roblox.com there is no
+ * such class, so `prefers-color-scheme` decides. Light is the base declaration and dark
+ * overrides it, so a surface can never end up with no palette at all.
+ */
+
+:root,
+.light-theme {
+  --rc-bg: #ffffff;
+  --rc-bg-subtle: #f2f4f5;
+  --rc-bg-raised: #ffffff;
+  --rc-border: #d7dbdf;
+  --rc-border-strong: #b9bfc4;
+
+  --rc-text: #1c1e21;
+  --rc-text-muted: #6b7278;
+  --rc-text-faint: #969ba0;
+
+  --rc-accent: #0d6efd;
+  --rc-accent-text: #ffffff;
+
+  --rc-clean: #00a55f;
+  --rc-exploiter: #d93025;
+  --rc-bugged: #e8830c;
+  --rc-avoid: #8b5cf6;
+  --rc-unknown: #969ba0;
+  --rc-favorite: #f5a623;
+
+  --rc-radius: 8px;
+  --rc-radius-sm: 5px;
+  --rc-gap: 8px;
+  --rc-font: system-ui, -apple-system, "Segoe UI", "Builder Sans", Arial, sans-serif;
+  --rc-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.dark-theme {
+  --rc-bg: #1d1f22;
+  --rc-bg-subtle: #272a2e;
+  --rc-bg-raised: #2e3236;
+  --rc-border: #3b4045;
+  --rc-border-strong: #4d545a;
+
+  --rc-text: #ffffff;
+  --rc-text-muted: #b4b8bc;
+  --rc-text-faint: #858b91;
+
+  --rc-accent: #3b82f6;
+  --rc-accent-text: #ffffff;
+
+  --rc-clean: #2ecc71;
+  --rc-exploiter: #ff5a4e;
+  --rc-bugged: #ffa726;
+  --rc-avoid: #a78bfa;
+  --rc-unknown: #858b91;
+  --rc-favorite: #ffc44d;
+
+  --rc-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+}
+
+/* Extension-owned surfaces, which Roblox never stamps a theme class onto. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) {
+    --rc-bg: #1d1f22;
+    --rc-bg-subtle: #272a2e;
+    --rc-bg-raised: #2e3236;
+    --rc-border: #3b4045;
+    --rc-border-strong: #4d545a;
+
+    --rc-text: #ffffff;
+    --rc-text-muted: #b4b8bc;
+    --rc-text-faint: #858b91;
+
+    --rc-accent: #3b82f6;
+
+    --rc-clean: #2ecc71;
+    --rc-exploiter: #ff5a4e;
+    --rc-bugged: #ffa726;
+    --rc-avoid: #a78bfa;
+    --rc-unknown: #858b91;
+    --rc-favorite: #ffc44d;
+
+    --rc-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rc-transition: none;
+  }
+}

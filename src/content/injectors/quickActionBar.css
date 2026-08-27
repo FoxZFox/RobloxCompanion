@@ -1,0 +1,68 @@
+/* Injected into roblox.com. Every rule is namespaced so nothing leaks into Roblox's own
+   styles, and every colour comes from a token so the bar follows Roblox's theme. */
+
+.rc-quick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rc-gap, 8px);
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--rc-border, #3b4045);
+  border-radius: var(--rc-radius, 8px);
+  background: var(--rc-bg-subtle, #272a2e);
+  font-family: var(--rc-font, system-ui, sans-serif);
+}
+
+.rc-quick-bar__label {
+  margin-right: 2px;
+  color: var(--rc-text-faint, #858b91);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rc-quick-bar__btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--rc-border-strong, #4d545a);
+  border-radius: var(--rc-radius-sm, 5px);
+  background: var(--rc-bg-raised, #2e3236);
+  color: var(--rc-text, #fff);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rc-quick-bar__btn:hover:not(:disabled) {
+  border-color: var(--rc-accent, #3b82f6);
+}
+
+.rc-quick-bar__btn:focus-visible {
+  outline: 2px solid var(--rc-accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.rc-quick-bar__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rc-quick-bar__btn--primary {
+  border-color: var(--rc-accent, #3b82f6);
+  background: var(--rc-accent, #3b82f6);
+  color: var(--rc-accent-text, #fff);
+}
+
+.rc-quick-bar__status {
+  flex-basis: 100%;
+  min-height: 14px;
+  color: var(--rc-text-muted, #b4b8bc);
+  font-size: 12px;
+}
