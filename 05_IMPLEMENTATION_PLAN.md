@@ -301,6 +301,21 @@ background parse ใหม่ทุกครั้งที่ SW ตื่น) 
 · วัดที่ v0.8.0: content 286 KB · background 66 KB · main-world 1 KB
 · budget ตั้งไว้สูงกว่าที่วัดราว 10% → โตปกติเงียบ โตกระโดดดัง
 
+**Release build ✅ (v0.12.0)** — `npm run build:release` → `dist-release/` · โค้ดชุดเดียวกัน
+ต่างกันแค่ Settings โชว์อะไร
+
+- ตัด **Developer mode / API probe / Server clock** ออกทั้งหมด (gate ที่ `!IS_RELEASE`
+  ไม่ใช่แค่ `developerMode` — setting เก่าที่ค้างว่าเปิดต้องไม่ปลุกมันกลับมา)
+- **ไม่โชว์ toggle ของ feature ที่ยังไม่เสร็จ** (Avatar / Trading) และอันที่ทำไม่ได้
+  ("Share reports with the community") · การ์ด "Coming later" บน Dashboard ก็ไม่โชว์
+- คำอธิบายยาว → ฉบับสั้นผ่าน `explain(short, long)` ที่เก็บสองเวอร์ชันไว้ติดกัน
+  เพื่อไม่ให้อันหนึ่งเก่าค้างโดยไม่มีใครเห็น
+- dev build ชื่อ **Roblox Companion (dev)** จะได้โหลดคู่กันแล้วไม่สับสน
+
+**เส้นที่ห้ามข้าม:** ประโยคที่บอกความไม่แน่นอน (upper bound / "อย่างน้อย" / "Roblox ไม่บอก")
+**ห้ามหายไปใน release** · ที่ตัดคือชื่อ endpoint, เลข phase, `status 12`, §ต่าง ๆ
+— ไม่ใช่ความซื่อสัตย์
+
 **i18n — ไม่ทำ** (ดูหัวข้อ "สถานะปัจจุบัน" ด้านบน)
 
 ---

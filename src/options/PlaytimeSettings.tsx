@@ -1,6 +1,7 @@
 import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
 import type { AppState, UiRequest } from '../models/messages';
 import { Section, Toggle } from './controls';
+import { explain } from '../config/release';
 import { OptionalAccess } from './OptionalAccess';
 
 const PRESENCE = [OPTIONAL_ORIGINS.presence];
@@ -27,10 +28,10 @@ export function PlaytimeSettings({ state, busy, send }: Props): React.JSX.Elemen
   return (
     <Section title="Playtime">
       <p className="rc-header__sub" style={{ marginTop: 0 }}>
-        A session starts when you press Join here. Without the setting below, that is the
-        only moment Roblox lets a browser extension observe — so a game you started from
-        Roblox&apos;s own page is not counted, and a session you leave keeps counting until
-        something else closes it.
+        {explain(
+          'A session starts when you press Join here. On its own that means a game you started from Roblox itself is not counted, and a session you leave keeps counting until something else closes it.',
+          'A session starts when you press Join here. Without the setting below, that is the only moment Roblox lets a browser extension observe — so a game you started from Roblox\u2019s own page is not counted, and a session you leave keeps counting until something else closes it.',
+        )}
       </p>
 
       <OptionalAccess origins={PRESENCE} label="Access to presence.roblox.com">
@@ -42,7 +43,10 @@ export function PlaytimeSettings({ state, busy, send }: Props): React.JSX.Elemen
         label="Track sessions from my Roblox presence"
         hint={
           enabled
-            ? 'Asks Roblox where this account is: once a minute while you are in a game, once every five when you are not. It reads your own account and nobody else. A session then starts when you enter a game however you got there, and ends when you leave — so the time is measured rather than assumed, to about a minute either way.'
+            ? explain(
+                'Asks Roblox where your account is — once a minute while you are in a game, once every five when you are not. Sessions then start and end on their own, whichever way you joined, accurate to about a minute. It reads your account and nobody else.',
+                'Asks Roblox where this account is: once a minute while you are in a game, once every five when you are not. It reads your own account and nobody else. A session then starts when you enter a game however you got there, and ends when you leave — so the time is measured rather than assumed, to about a minute either way.',
+              )
             : 'Needs Playtime Tracking, which is switched off above.'
         }
         checked={enabled && follow}

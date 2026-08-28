@@ -1,7 +1,7 @@
 # HANDOFF — อ่านไฟล์นี้ก่อนทำงานต่อ
 
 อัปเดต **28 ส.ค. 2026** · `npm run check` ผ่าน — typecheck สะอาด, **414 tests**, build ~2.0s
-· source ~20,300 บรรทัด · **schema v7** · **v0.11.1** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
+· source ~20,400 บรรทัด · **schema v7** · **v0.12.0** · **release build: `npm run build:release` (§19)** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
 
 ---
 
@@ -19,7 +19,7 @@
 | 7 Playtime + live stats | ✅ | quick search (§11) · visit log ต่อเซิร์ฟ (§17) · **session tracking จาก presence (§18)** |
 | 8 Profiles / Avatar / Themes | 🟡 | Themes ✅ (§9) · Profiles ✅ (§12) · **Last online ⏳ รอ probe** · Avatar ⬜ (write ยัง verify ไม่ได้) |
 | 9 Trading | ⬜ | บล็อก — endpoint ตอบ 200 แต่บัญชีทดสอบไม่มีเทรดให้ดูรูปร่าง |
-| 10 Polish | ✅ | Command Palette ✅ · **a11y ครบทุก surface (§15)** · **size budget (§16)** · i18n = **ไม่ทำ** |
+| 10 Polish | ✅ | Command Palette ✅ · a11y ครบทุก surface (§15) · size budget (§16) · **release build (§19)** · i18n = **ไม่ทำ** |
 
 **i18n — ปิดเรื่องแล้ว (28 ส.ค. 2026)** ผู้ใช้ตัดสินใจเองว่า **UI ภาษาอังกฤษ global กว่า**
 การแปลเป็นภาษาใดภาษาหนึ่ง → ไม่มี `_locales/` ไม่มี `chrome.i18n` และ **ห้ามเพิ่มกลับโดยไม่ถาม**
@@ -621,3 +621,44 @@ tool ⏱ **Time** → การ์ด **Your visits** · หนึ่งแถ�
 listener ที่มีอยู่**ตอน script ประเมินเสร็จ** · listener ที่มาทีหลัง 2-3 await **พลาด event ที่ปลุกตัวเอง**
 เงียบ ๆ → prune alarm เดิมก็โดนด้วย · ย้ายไป register ที่ **top level ของ `serviceWorker.ts`**
 แล้วให้ `alarms.ts` export `handleAlarm` แทน (สร้าง alarm ได้ แต่ไม่ฟังเอง)
+
+---
+
+## 19. Release build — `npm run build:release` (v0.12.0)
+
+โค้ดชุดเดียวกัน สอง output · `--release` เขียนลง `dist-release/` พร้อม `__RELEASE__ = true`
+· dev build ชื่อ **Roblox Companion (dev)** บนการ์ด จะได้โหลดคู่กันได้ไม่สับสน
+
+| | dev (`dist/`) | release (`dist-release/`) |
+|---|---|---|
+| Developer mode · API probe · Server clock | ✅ | ❌ gate ที่ `!IS_RELEASE` |
+| toggle ของ feature ที่ยังไม่ `shipped` | โชว์ disabled + บอก phase | **ไม่โชว์** |
+| "Share reports with the community" (ทำไม่ได้) | โชว์ | ไม่โชว์ |
+| การ์ด "Coming later" (Dashboard) | ✅ | ❌ |
+| คำอธิบายใน Settings | ฉบับเต็ม | ฉบับสั้นผ่าน `explain()` |
+| พฤติกรรมกับ Roblox | **เหมือนกันเป๊ะ** | **เหมือนกันเป๊ะ** |
+
+`src/config/release.ts` มีแค่สองอย่าง: `IS_RELEASE` กับ `explain(short, long)`
+
+**ทำไม `explain()` เก็บสองประโยคไว้ติดกันที่ call site** — ทางเลือกคือแยกไฟล์ strings
+ซึ่งจะทำให้ประโยคสั้นกับประโยคยาวของเรื่องเดียวกันอยู่คนละไฟล์ แล้ววันหนึ่งอันหนึ่งจะเก่าค้าง
+โดยไม่มีใครเห็นว่าอันไหน · อยู่ติดกันแก้พร้อมกันเสมอ
+
+### เส้นที่ห้ามข้าม
+
+**สิ่งที่ตัดได้** = ชื่อ endpoint · เลข phase · `status 12` · §ต่าง ๆ · ชื่อไฟล์เอกสาร
+· คำว่า backend/probe/docs-only — พวกนี้พูดกับคนที่สร้าง ไม่ใช่คนที่ใช้
+
+**สิ่งที่ห้ามตัด** = ประโยคที่บอกว่าตัวเลขเชื่อได้แค่ไหน · *"นับจากตอนกด Join ไม่ใช่เวลาเล่นจริง"*
+· *"อย่างน้อย X"* · *"Roblox ไม่บอกว่าใครอยู่เซิร์ฟไหน"* · *"ping ไม่ใช่ของคุณ"*
+→ ไม่ใช่ developer note แต่เป็นเส้นแบ่งระหว่าง **ตัวเลข** กับ **การอ้าง** (§55)
+**release build ที่ตัดพวกนี้ออกคือ build ที่โกหก** · ฉบับสั้นต้องพูดเรื่องเดียวกันด้วยคำน้อยลง
+ห้ามพูดให้เบาลง
+
+### ที่ต้องระวังเวลาเพิ่มของใหม่
+
+- gate เครื่องมือ dev ด้วย **`!IS_RELEASE && developerMode`** ไม่ใช่ `developerMode` เฉย ๆ
+  · settings เป็น override ที่ import ข้าม build ได้ ค่าที่ค้างว่า `true` ต้องไม่ปลุก probe
+  กลับมาใน release
+- feature ใหม่ที่ยังไม่เสร็จ ตั้ง `shipped: false` แล้วมันจะหายจาก release เอง
+- ตรวจง่าย ๆ ว่า release ตัดจริง: `grep -c "status 12" dist-release/assets/options-*.js` = 0

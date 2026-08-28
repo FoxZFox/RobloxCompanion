@@ -5,6 +5,7 @@ import type { ApiProbeResult } from '../features/devtools/apiProbe';
 import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
 import { OptionalAccess } from './OptionalAccess';
 import { Section } from './controls';
+import { IS_RELEASE } from '../config/release';
 import { formatDate, formatTime } from '../utils/format';
 
 const PROBE_ORIGINS = Object.values(OPTIONAL_ORIGINS);
@@ -100,8 +101,8 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
     <>
       <Section title="Backup">
         <p className="rc-header__sub" style={{ marginTop: 0 }}>
-          Exports your settings, flags and blacklist as JSON. Importing merges rather than
-          replaces, so anything already here survives.
+          Saves your settings, flags and blacklist to a file. Importing merges rather than
+          replaces, so nothing you already have is lost.
         </p>
 
         <div className="rc-btn-row">
@@ -137,11 +138,16 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
         ) : null}
       </Section>
 
-      {state.settings.developerMode ? (
+      {/*
+        Both of these answer questions about Roblox's API before something is built on it.
+        Nobody using the extension has those questions, and a stored developerMode from a
+        development build must not bring them back, so the build decides too.
+      */}
+      {!IS_RELEASE && state.settings.developerMode ? (
         <ServerClock state={state} busy={busy} send={send} />
       ) : null}
 
-      {state.settings.developerMode ? (
+      {!IS_RELEASE && state.settings.developerMode ? (
         <Section title="API probe">
 
           {/*

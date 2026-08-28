@@ -16,8 +16,9 @@ no uploads, everything in `chrome.storage.local`.
 ## Commands
 
 ```bash
-npm run check      # typecheck + 364 tests + build — run before every commit
+npm run check      # typecheck + tests + build — run before every commit
 npm run build      # → dist/  (~2s)
+npm run build:release  # → dist-release/  (the build for people, see below)
 npm run watch      # rebuild on any change under src/
 npm run typecheck  # tsc --noEmit
 npm test           # vitest run
@@ -192,6 +193,22 @@ give up quietly.
    the three the user pays for without asking (injected on every roblox.com page load; the
    worker is re-parsed on every MV3 wake). Raising a budget is a deliberate decision with a
    fresh measurement, never a way to get a build to pass.
+
+## Two builds, one codebase
+
+`npm run build:release` sets `__RELEASE__`, writes to `dist-release/`, and names the dev
+build "Roblox Companion (dev)" so both can be loaded at once. `src/config/release.ts`
+exposes `IS_RELEASE` and `explain(short, long)`.
+
+A release build hides Developer Mode, the API probe and the job-id check (gated on
+`!IS_RELEASE`, not just on the stored `developerMode`), drops feature toggles that are
+not `shipped`, and takes the short half of every `explain()`.
+
+**What must survive it is the honesty.** "Time since you joined, not time played",
+"at least this old", "Roblox does not disclose who is in a server" are not developer
+notes - they are the difference between a number and a claim. The short form says the
+same thing in fewer words; it never says something weaker. Endpoint names, phase
+numbers, `status 12` and spec section references are the parts that go.
 
 ## Chrome API limits that fail silently
 

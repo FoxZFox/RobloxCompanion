@@ -4,6 +4,7 @@ import { sendQuery } from '../hooks/sendQuery';
 import type { AppState, UiRequest } from '../models/messages';
 import type { PrivateServer } from '../models/privateServer';
 import { copyText } from '../utils/clipboard';
+import { explain } from '../config/release';
 
 interface Props {
   state: AppState;
@@ -132,13 +133,10 @@ export function PrivateServersPane({ state, busy, send }: Props): React.JSX.Elem
           per-place list turned out to carry the code, so joining costs nothing.
         */}
         <p className="rc-footnote" style={{ marginTop: 0 }}>
-          Join uses the access code Roblox already gives this account for servers you may
-          enter here — no link is created or regenerated, so the invite links you have
-          shared are untouched. Servers you own on other experiences are listed above
-          without a Join button because Roblox only discloses codes for the place you are
-          on. <strong>Share link</strong> reads the link Roblox has already made for a
-          server you own; if there is none, make one on its Roblox page — generating one
-          replaces the previous link, and that is not a thing to do on your behalf.
+          {explain(
+            'Nothing here creates or changes anything on Roblox, so links you have already shared keep working. Servers on other experiences have no Join button because Roblox only lets you in from the page you are on. Share link copies the link Roblox already made — if there is none, make one on its Roblox page.',
+            'Join uses the access code Roblox already gives this account for servers you may enter here — no link is created or regenerated, so the invite links you have shared are untouched. Servers you own on other experiences are listed above without a Join button because Roblox only discloses codes for the place you are on. Share link reads the link Roblox has already made for a server you own; if there is none, make one on its Roblox page — generating one replaces the previous link, and that is not a thing to do on your behalf.',
+          )}
         </p>
         <div className="rc-btn-row">
           <button

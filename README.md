@@ -47,7 +47,8 @@ npm run build      # → dist/
 
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `npm run build` | build ลง `dist/` (~2 วิ) |
+| `npm run build` | build ลง `dist/` (~2 วิ) — **build สำหรับพัฒนา** |
+| `npm run build:release` | build ลง `dist-release/` — **build สำหรับใช้จริง** (ดูล่าง) |
 | `npm run watch` | rebuild อัตโนมัติเมื่อแก้ไฟล์ใน `src/` |
 | `npm run typecheck` | `tsc --noEmit` (strict + `exactOptionalPropertyTypes`) |
 | `npm test` | vitest — 414 tests |
@@ -63,6 +64,27 @@ npm run build      # → dist/
   dist/content.js          288.8 KB / 320 KB   ← ฉีดทุกครั้งที่โหลดหน้า roblox.com
   dist/main-world.js         1.0 KB / 4 KB     ← ฉีดทุกครั้งเหมือนกัน
 ```
+
+### 📦 dev build กับ release build
+
+โค้ดชุดเดียวกัน ต่างกันแค่ว่า Settings โชว์อะไร — **พฤติกรรมกับ Roblox เหมือนกันเป๊ะ**
+
+| | `npm run build` → `dist/` | `npm run build:release` → `dist-release/` |
+|---|---|---|
+| ชื่อบนการ์ด | Roblox Companion **(dev)** | Roblox Companion |
+| Developer mode + API probe + Server clock | ✅ มี | ❌ ไม่มีเลย (ต่อให้ setting เก่าค้างว่าเปิดอยู่) |
+| toggle ของ feature ที่ยังไม่เสร็จ (Avatar / Trading) | โชว์แบบ disabled พร้อมบอก phase | **ไม่โชว์เลย** |
+| "Share reports with the community" ที่ยังทำไม่ได้ | โชว์ไว้ให้เห็นว่าไม่มี | ไม่โชว์ |
+| การ์ด "Coming later" บน Dashboard | ✅ | ❌ |
+| คำอธิบายยาว ๆ ใน Settings | ฉบับเต็ม (มี `status 12`, ชื่อ endpoint, เลข phase) | ฉบับสั้น ภาษาคนใช้งาน |
+
+โหลดพร้อมกันสองตัวได้ (ชื่อคนละอัน) แต่ **storage แยกกันคนละ extension id**
+ถ้าอยากย้ายค่าที่ตั้งไว้ ใช้ Settings → Backup → Export/Import
+
+> **สิ่งที่ release build ไม่ตัดทิ้งเด็ดขาดคือ "ความซื่อสัตย์"** — ประโยคอย่าง
+> *"นับจากตอนกด Join ไม่ใช่เวลาเล่นจริง"* / *"อย่างน้อย X"* / *"Roblox ไม่บอกว่าใครอยู่เซิร์ฟไหน"*
+> ไม่ใช่ developer note แต่เป็นเส้นแบ่งระหว่าง**ตัวเลข**กับ**การอ้าง** · ตัดออกเมื่อไหร่
+> release build จะกลายเป็นตัวที่โกหก
 
 ### ทำไม build ถึงแบ่งเป็นสองขา
 
@@ -89,6 +111,7 @@ npm run build      # → dist/
 1. `npm run build`
 2. เปิด `chrome://extensions` → เปิด **Developer mode**
 3. **Load unpacked** → เลือกโฟลเดอร์ **`dist`** (ไม่ใช่โฟลเดอร์โปรเจกต์)
+   · ถ้าจะใช้จริงไม่ได้พัฒนา ให้ `npm run build:release` แล้วเลือก **`dist-release`** แทน
 4. ปักหมุด 📌 ไว้บน toolbar
 
 **หลังแก้โค้ด:** `npm run build` แล้วกด ↻ ที่การ์ดของ extension

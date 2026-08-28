@@ -4,6 +4,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { AppState } from '../models/messages';
 import { STATUS_META } from '../models/server';
+import { IS_RELEASE } from '../config/release';
 import { formatAgo, formatTime, shortJobId } from '../utils/format';
 
 /**
@@ -102,13 +103,19 @@ export function Dashboard(): React.JSX.Element {
           {state.history.length === 0 ? <div className="rc-empty">No joins recorded yet.</div> : null}
         </section>
 
-        <section className="rc-card" aria-labelledby="rc-dash-later">
-          <h2 className="rc-card__label" id="rc-dash-later">Coming later</h2>
-          <div className="rc-meta">
-            Profiles (phase 8) · Avatar (phase 8) · Trading (phase 9). These are listed rather than
-            shown as empty widgets, because nothing is being tracked for them yet.
-          </div>
-        </section>
+        {/* A roadmap belongs in the repository, not on the dashboard of a shipped build. */}
+        {IS_RELEASE ? null : (
+          <section className="rc-card" aria-labelledby="rc-dash-later">
+            <h2 className="rc-card__label" id="rc-dash-later">
+              Coming later
+            </h2>
+            <div className="rc-meta">
+              Profiles (phase 8) · Avatar (phase 8) · Trading (phase 9). These are listed
+              rather than shown as empty widgets, because nothing is being tracked for them
+              yet.
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

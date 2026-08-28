@@ -4,6 +4,7 @@ import { sessionDuration, startOfDay } from '../features/playtime/playtime';
 import { describeDuration, describeServerAge } from '../features/playtime/sessionLog';
 import type { AppState, UiRequest } from '../models/messages';
 import { formatAgo, formatDuration, formatTime, shortJobId } from '../utils/format';
+import { explain } from '../config/release';
 
 interface Props {
   state: AppState;
@@ -36,9 +37,10 @@ export function PlaytimePane({ state, busy, send }: Props): React.JSX.Element {
           "played" would overstate what was measured.
         */}
         <p className="rc-header__sub" style={{ marginTop: 0 }}>
-          Measured from when you press Join until you join somewhere else. Roblox tells a
-          browser extension nothing about a running game, so this is an upper bound rather
-          than time actually spent playing.
+          {explain(
+            'Counted from when you press Join. Roblox tells a browser nothing about a running game, so without presence tracking this is a ceiling, not time actually played.',
+            'Measured from when you press Join until you join somewhere else. Roblox tells a browser extension nothing about a running game, so this is an upper bound rather than time actually spent playing.',
+          )}
         </p>
 
         <div className="rc-health">
@@ -177,9 +179,10 @@ function SessionLog({ state, now }: { state: AppState; now: number }): React.JSX
     <div className="rc-card" style={{ marginBottom: 10 }}>
       <div className="rc-card__label">Your visits</div>
       <p className="rc-header__sub" style={{ marginTop: 0 }}>
-        Which server, in which experience, and for how long. Server age is measured from
-        the first time this extension saw that server — Roblox publishes no start time, so
-        it is a floor, never the real uptime.
+        {explain(
+          'Which server, in which experience, and for how long. Roblox never says when a server started, so its age is counted from the first time we saw it — always "at least".',
+          'Which server, in which experience, and for how long. Server age is measured from the first time this extension saw that server — Roblox publishes no start time, so it is a floor, never the real uptime.',
+        )}
       </p>
 
       {state.sessions.map((entry) => (

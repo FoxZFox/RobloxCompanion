@@ -1,6 +1,7 @@
 import '../components/theme.css';
 import '../components/CommandCenter.css';
 import { FEATURES, isImplemented } from '../config/features';
+import { IS_RELEASE, explain } from '../config/release';
 import { useAppState } from '../hooks/useAppState';
 import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { UiRequest } from '../models/messages';
@@ -52,7 +53,10 @@ export function Options(): React.JSX.Element {
         <Section title="General">
           <Row
             label="Clicking the toolbar icon opens"
-            hint="The in-page panel floats over Roblox itself and can be dragged anywhere; the side panel takes a fixed slice of the window; the popup closes as soon as you alt-tab. Chrome only lets the side panel be opened by the icon itself, so this setting controls the icon directly."
+            hint={explain(
+              'The in-page panel floats over Roblox and can be dragged anywhere. The side panel stays beside the page; the popup closes the moment you switch away.',
+              'The in-page panel floats over Roblox itself and can be dragged anywhere; the side panel takes a fixed slice of the window; the popup closes as soon as you alt-tab. Chrome only lets the side panel be opened by the icon itself, so this setting controls the icon directly.',
+            )}
           >
             {(ids) => (
               <select
@@ -75,17 +79,21 @@ export function Options(): React.JSX.Element {
             )}
           </Row>
 
-          <Toggle
-            label="Developer mode"
-            hint="Show API requests, ids and cache state for debugging."
-            checked={settings.developerMode}
-            disabled={busy}
-            onChange={(developerMode) => dispatch({ type: 'settings/set', patch: { developerMode } })}
-          />
+          {IS_RELEASE ? null : (
+            <Toggle
+              label="Developer mode"
+              hint="Show API requests, ids and cache state for debugging."
+              checked={settings.developerMode}
+              disabled={busy}
+              onChange={(developerMode) =>
+                dispatch({ type: 'settings/set', patch: { developerMode } })
+              }
+            />
+          )}
         </Section>
 
         <Section title="Features">
-          {FEATURES.map((feature) => {
+          {FEATURES.filter((feature) => !IS_RELEASE || isImplemented(feature)).map((feature) => {
             const available = isImplemented(feature);
             return (
               <Toggle
@@ -139,7 +147,10 @@ export function Options(): React.JSX.Element {
 
           <Toggle
             label="Exclude full servers"
-            hint="Applied by Roblox as a query parameter, so it also changes what can be paginated."
+            hint={explain(
+              'Leaves out servers that are already full.',
+              'Applied by Roblox as a query parameter, so it also changes what can be paginated.',
+            )}
             checked={settings.serverBrowser.excludeFull}
             disabled={busy}
             onChange={(excludeFull) =>
@@ -179,7 +190,10 @@ export function Options(): React.JSX.Element {
 
           <Row
             label="How many servers to load"
-            hint="Under 'lowest first' Roblox returns the emptiest servers on page one, so Join Lowest and Smart Join already have what they need there. More pages take longer and mainly help when browsing."
+            hint={explain(
+              'Page one already holds the emptiest servers, so more pages mainly help when browsing — and take longer.',
+              "Under 'lowest first' Roblox returns the emptiest servers on page one, so Join Lowest and Smart Join already have what they need there. More pages take longer and mainly help when browsing.",
+            )}
           >
             {(ids) => (
               <select
@@ -232,7 +246,10 @@ export function Options(): React.JSX.Element {
           />
           <Toggle
             label="Skip servers with blacklisted players, when detectable"
-            hint="Roblox does not disclose who is in a public server, so this almost never applies today. It is here so it takes effect if that ever changes."
+            hint={explain(
+              'Roblox does not say who is in a public server, so this rarely applies. It is here for the servers where it can be told.',
+              'Roblox does not disclose who is in a public server, so this almost never applies today. It is here so it takes effect if that ever changes.',
+            )}
             checked={settings.avoid.blacklistedPlayersWhenDetectable}
             disabled={busy}
             onChange={(value) =>
@@ -248,14 +265,17 @@ export function Options(): React.JSX.Element {
 
         <Section title="Privacy">
           <p className="rc-header__sub" style={{ marginTop: 0 }}>
-            Everything this extension records — server reports, history and your blacklist — is
-            stored on this machine only. There is no backend and nothing is uploaded.
+            {explain(
+              'Everything this extension records — server reports, history and your blacklist — stays on this machine. Nothing is uploaded anywhere.',
+              'Everything this extension records — server reports, history and your blacklist — is stored on this machine only. There is no backend and nothing is uploaded.',
+            )}
           </p>
 
           <OptionalAccess origins={PRESENCE} label="Access to presence.roblox.com">
-            Presence is how the blacklist can answer "is this person in that server" at all.
-            It reads other people, so the host is not requested at install — and Roblox
-            only answers for those whose own privacy settings allow it.
+            {explain(
+              'Needed to look up where someone on your blacklist is. It reads other people, so it is never granted without you asking — and Roblox answers only for those whose privacy settings allow it.',
+              'Presence is how the blacklist can answer "is this person in that server" at all. It reads other people, so the host is not requested at install — and Roblox only answers for those whose own privacy settings allow it.',
+            )}
           </OptionalAccess>
 
           <Toggle
@@ -268,13 +288,15 @@ export function Options(): React.JSX.Element {
             }
           />
 
-          <Toggle
-            label="Share reports with the community"
-            hint="Not available: V1 has no backend. Listed so its absence is explicit."
-            checked={false}
-            disabled
-            onChange={() => undefined}
-          />
+          {IS_RELEASE ? null : (
+            <Toggle
+              label="Share reports with the community"
+              hint="Not available: V1 has no backend. Listed so its absence is explicit."
+              checked={false}
+              disabled
+              onChange={() => undefined}
+            />
+          )}
         </Section>
       </main>
     </div>

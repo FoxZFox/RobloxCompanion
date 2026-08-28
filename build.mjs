@@ -22,18 +22,36 @@ import { readFile, stat, writeFile } from 'node:fs/promises';
  * One file per script, no dynamic imports, nothing to fetch at runtime.
  */
 
+/**
+ * Release builds drop everything meant for whoever is building this thing.
+ *
+ * One codebase, two outputs. `--release` writes to dist-release/ with `__RELEASE__` true,
+ * which switches off Developer Mode, the API probe and the job-id check, hides features
+ * that are not finished, and swaps the long engineering explanations in Settings for the
+ * short version. Nothing about how the extension behaves on Roblox changes.
+ *
+ * The honest caveats stay in both. They are not developer notes - "this is time since you
+ * joined, not time played" is the difference between a number and a claim.
+ */
+const release = process.argv.includes('--release');
+const OUT = release ? 'dist-release' : 'dist';
+
 const SCRIPTS = [
   // `pageCsp` marks the scripts that execute on roblox.com and are therefore subject to
   // its Content-Security-Policy. The service worker runs on the extension's own origin.
-  { entry: 'src/background/serviceWorker.ts', outfile: 'dist/background.js', pageCsp: false },
-  { entry: 'src/content/bootstrap.ts', outfile: 'dist/content.js', pageCsp: true },
-  { entry: 'src/main-world/index.ts', outfile: 'dist/main-world.js', pageCsp: true },
+  { entry: 'src/background/serviceWorker.ts', outfile: `${OUT}/background.js`, pageCsp: false },
+  { entry: 'src/content/bootstrap.ts', outfile: `${OUT}/content.js`, pageCsp: true },
+  { entry: 'src/main-world/index.ts', outfile: `${OUT}/main-world.js`, pageCsp: true },
 ];
 
 const watch = process.argv.includes('--watch');
 
 async function buildPages() {
-  await viteBuild({ logLevel: 'warn' });
+  await viteBuild({
+    logLevel: 'warn',
+    build: { outDir: OUT },
+    define: { __RELEASE__: String(release) },
+  });
 }
 
 async function buildScripts() {
@@ -56,7 +74,7 @@ async function buildScripts() {
          * every warning string and dev-only branch - which weighs over a megabyte and is
          * injected into every Roblox page load.
          */
-        define: { 'process.env.NODE_ENV': '"production"' },
+        define: { 'process.env.NODE_ENV': '"production"', __RELEASE__: String(release) },
         minify: true,
       }),
     ),
@@ -103,9 +121,9 @@ async function assertNoRuntimeImports() {
  * is a decision to make on purpose, with the new number measured, not a formality.
  */
 const SIZE_BUDGET_KB = {
-  'dist/content.js': 320,
-  'dist/background.js': 96,
-  'dist/main-world.js': 4,
+  'content.js': 320,
+  'background.js': 96,
+  'main-world.js': 4,
 };
 
 /**
@@ -123,7 +141,7 @@ async function reportSizes() {
   for (const script of SCRIPTS) {
     const { size } = await stat(script.outfile);
     const kb = size / 1024;
-    const budget = SIZE_BUDGET_KB[script.outfile];
+    const budget = SIZE_BUDGET_KB[script.outfile.slice(OUT.length + 1)];
     rows.push(`  ${script.outfile.padEnd(22)} ${kb.toFixed(1).padStart(7)} KB / ${budget} KB`);
     if (budget !== undefined && kb > budget) over ??= { outfile: script.outfile, kb, budget };
   }
@@ -148,29 +166,33 @@ async function regenerateSharedStyles() {
   execFileSync(process.execPath, ['tools/make-shared-styles.mjs'], { stdio: 'inherit' });
 }
 
-/** Keeps the manifest version in step with package.json so they cannot drift. */
-async function syncVersion() {
+/**
+ * Keeps the manifest version in step with package.json so they cannot drift, and names
+ * the development build so two loaded side by side are told apart at a glance.
+ */
+async function syncManifest() {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
-  const manifestPath = 'dist/manifest.json';
+  const manifestPath = `${OUT}/manifest.json`;
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  if (manifest.version !== pkg.version) {
-    manifest.version = pkg.version;
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  }
+
+  manifest.version = pkg.version;
+  if (!release) manifest.name = `${manifest.name} (dev)`;
+
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 async function run() {
   const started = Date.now();
   // The panel needs the shared CSS as a string; keep it in step with the stylesheet.
   await regenerateSharedStyles();
-  await buildPages(); // Runs first: Vite empties dist/.
-  // CSS imported by the content script lands at dist/content.css, since esbuild names
-  // the stylesheet after the outfile. That is the path the manifest references.
+  await buildPages(); // Runs first: Vite empties the output directory.
+  // CSS imported by the content script lands beside it as content.css, since esbuild
+  // names the stylesheet after the outfile. That is the path the manifest references.
   await buildScripts();
   await assertNoRuntimeImports();
-  await syncVersion();
+  await syncManifest();
   await reportSizes();
-  console.log(`built in ${Date.now() - started}ms`);
+  console.log(`built ${release ? 'release' : 'dev'} in ${Date.now() - started}ms → ${OUT}/`);
 }
 
 await run();
