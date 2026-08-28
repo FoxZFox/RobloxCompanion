@@ -4,7 +4,7 @@
  * Every field here was read off a real response on 28 Aug 2026, not from Roblox's docs -
  * which is the whole reason this phase sat blocked for as long as it did. What the
  * response does NOT carry is an access code, so nothing in this model can join anything:
- * see 02_ROBLOX_API_MAP.md section 4.
+ * see docs/02_ROBLOX_API_MAP.md section 4.
  */
 export interface PrivateServer {
   privateServerId: number;

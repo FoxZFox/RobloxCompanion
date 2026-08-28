@@ -6,12 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 feature-parity from scratch, with server intelligence as the differentiator. No backend,
 no uploads, everything in `chrome.storage.local`.
 
-> **Read `HANDOFF.md` before doing anything.** It carries the current phase status, the
+> **Read `docs/HANDOFF.md` before doing anything.** It carries the current phase status, the
 > constraints proven at runtime, and the rules. This file covers the parts of the codebase
 > you would otherwise have to read many files to learn.
 >
-> Project docs (`README.md`, `01`–`05`, `PERMISSIONS.md`, `HANDOFF.md`) are written in Thai
-> with English technical terms; source comments are in English. Match both conventions.
+> **Two audiences, two places.** `README.md` and `TH.md` at the root are the user guide —
+> English and Thai, same content, cross-linked — written for someone *using* the extension,
+> not building it. Everything in `docs/` is ours: Thai with English technical terms. Source
+> comments are English. Match whichever convention you are editing, and keep phase numbers,
+> endpoint names and spec sections out of the two root files.
 
 ## Commands
 
@@ -164,7 +167,7 @@ give up quietly.
 
 ## Rules that are easy to break by accident
 
-1. **Never build on a `docs-only` endpoint.** `02_ROBLOX_API_MAP.md` marks every endpoint
+1. **Never build on a `docs-only` endpoint.** `docs/02_ROBLOX_API_MAP.md` marks every endpoint
    `verified-live` / `docs-only` / `planned`. Ask the user to run Settings → Developer mode →
    Run probe (while on a Roblox game page) and report back first. A complete region-detection
    feature — scoring, IP→region table, settings UI, optional permission, tests — had to be
@@ -247,18 +250,18 @@ must use `import type`.
 ## Editing gotcha
 
 Do not rewrite files containing emoji with a Python `io.open(p, 'w')` script — it truncates
-first and then dies encoding surrogate pairs. `README.md` and `02_ROBLOX_API_MAP.md` were each
+first and then dies encoding surrogate pairs. `README.md` and `docs/02_ROBLOX_API_MAP.md` were each
 destroyed twice this way. Use the Write/Edit tools.
 
 ## Document map
 
 | File | Contents |
 |---|---|
-| `HANDOFF.md` | phase status, blockers, hard-won lessons, rules — **read first** |
-| `README.md` | usage, build, known limits, structure, debugging |
-| `01_FEATURE_MATRIX.md` | every RoPro Free/Plus/Rex feature vs. what we can actually do |
-| `02_ROBLOX_API_MAP.md` | every endpoint + `verified-live` / `docs-only` status |
-| `03_ARCHITECTURE.md` | layers, message protocol, storage, error isolation |
-| `04_UI_UX.md` | in-page panel, tool rail, honest labelling rules |
-| `05_IMPLEMENTATION_PLAN.md` | per-phase detail + §54 Definition of Done |
-| `PERMISSIONS.md` | why each permission exists, and which are deliberately not requested |
+| `docs/HANDOFF.md` | phase status, blockers, hard-won lessons, rules — **read first** |
+| `README.md` · `TH.md` | the user guide, English and Thai. No internals: a sentence naming an endpoint or a phase belongs in `docs/` |
+| `docs/01_FEATURE_MATRIX.md` | every RoPro Free/Plus/Rex feature vs. what we can actually do |
+| `docs/02_ROBLOX_API_MAP.md` | every endpoint + `verified-live` / `docs-only` status |
+| `docs/03_ARCHITECTURE.md` | layers, message protocol, storage, error isolation |
+| `docs/04_UI_UX.md` | in-page panel, tool rail, honest labelling rules |
+| `docs/05_IMPLEMENTATION_PLAN.md` | per-phase detail + §54 Definition of Done |
+| `docs/PERMISSIONS.md` | why each permission exists, and which are deliberately not requested |

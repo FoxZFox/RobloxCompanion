@@ -28,7 +28,7 @@ interface ServerRowProps {
  * One server.
  *
  * Two labels here are deliberately hedged, because Roblox does not give us what the
- * original mock assumed (see 04_UI_UX.md):
+ * original mock assumed (see docs/04_UI_UX.md):
  *   - ping is prefixed "avg" - it is the server's average across its players, not yours
  *   - age reads "first seen" - it is our own first sighting, not a server start time
  *

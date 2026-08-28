@@ -1,6 +1,6 @@
 /**
  * Every Roblox URL the extension knows, in one place, so an endpoint move is one edit.
- * Verification status for each of these lives in 02_ROBLOX_API_MAP.md.
+ * Verification status for each of these lives in docs/02_ROBLOX_API_MAP.md.
  */
 
 export const GAMES_API = 'https://games.roblox.com/v1';
@@ -9,7 +9,7 @@ export const APIS = 'https://apis.roblox.com';
 export const WEB_ORIGIN = 'https://www.roblox.com';
 
 /*
- * Hosts behind an optional permission (see PERMISSIONS.md).
+ * Hosts behind an optional permission (see docs/PERMISSIONS.md).
  *
  * Nothing here is requested at install: each is asked for at the moment a feature or the
  * API probe actually needs it, so someone who never touches trading never grants access to
@@ -100,7 +100,7 @@ export function gameVotesUrl(universeIds: string[]): string {
 
 /* ------------------------------------------------------------ private servers
  * All docs-only. Phase 6 is built on these, so they are probed before anything is
- * built on top of them - the lesson from region (see section 3 of 02_ROBLOX_API_MAP.md).
+ * built on top of them - the lesson from region (see section 3 of docs/02_ROBLOX_API_MAP.md).
  */
 
 /** docs-only. `{ privateServersEnabled: boolean }`. */
@@ -171,7 +171,7 @@ export function privateServerLinkUrl(placeId: string, joinCode: string): string 
  * They exist so one probe run can tell us which of phases 5, 7, 8 and 9 rest on
  * endpoints that actually answer a browser - the question that blocked all four. None of
  * them may appear in a feature until the probe has seen a real response and
- * 02_ROBLOX_API_MAP.md has been updated (rule 7).
+ * docs/02_ROBLOX_API_MAP.md has been updated (rule 7).
  */
 
 /** docs-only. The signed-in user: `{ id, name, displayName }`. */

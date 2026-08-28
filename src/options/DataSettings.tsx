@@ -158,7 +158,7 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
           */}
           <p className="rc-header__sub" style={{ marginTop: 0 }}>
             Calls each endpoint the extension relies on and reports what actually came back,
-            so <code>02_ROBLOX_API_MAP.md</code> can be corrected before more is built on
+            so <code>docs/02_ROBLOX_API_MAP.md</code> can be corrected before more is built on
             top of it. Every probe is a plain read — nothing is created, bought or joined.
           </p>
 

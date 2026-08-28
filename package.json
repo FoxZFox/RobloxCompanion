@@ -1,6 +1,6 @@
 {
   "name": "roblox-companion",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "description": "Power-user companion extension for roblox.com — server intelligence, reputation flags and quick actions.",
   "type": "module",

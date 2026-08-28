@@ -11,7 +11,7 @@ interface Props {
  * Grants a host permission at the moment a feature needs it, and takes it back.
  *
  * Nothing beyond the four hosts the server browser cannot work without is requested at
- * install (see PERMISSIONS.md). Everything else is asked for here, once, with the reason
+ * install (see docs/PERMISSIONS.md). Everything else is asked for here, once, with the reason
  * on screen - and Revoke sits next to Grant, because a permission that cannot be
  * withdrawn from the same place it was given is not really optional.
  *

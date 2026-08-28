@@ -1,6 +1,6 @@
 /**
  * Tunables. Values marked "measured" come from live probing of the Roblox API during
- * the predecessor project and are documented in 02_ROBLOX_API_MAP.md. Changing one of
+ * the predecessor project and are documented in docs/02_ROBLOX_API_MAP.md. Changing one of
  * those is a decision about Roblox's behaviour, not a matter of taste.
  */
 

@@ -94,7 +94,7 @@ function sample(value: unknown): string {
  * the UI shipped did a real call reveal that Roblox refuses browser traffic with
  * `status: 12`. A whole feature had to be withdrawn.
  *
- * Everything in `02_ROBLOX_API_MAP.md` that is still `docs-only` carries the same risk -
+ * Everything in `docs/02_ROBLOX_API_MAP.md` that is still `docs-only` carries the same risk -
  * private servers most of all, since phase 6 is built entirely on five unverified calls.
  * So the order is now: probe first, read the real response, update the map, then build.
  *

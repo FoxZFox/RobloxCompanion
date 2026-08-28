@@ -49,7 +49,7 @@ const MAX_TRACKED_SIGHTINGS = 5000;
 /**
  * Wires every service together once and owns the state that outlives a single message.
  *
- * The service worker is the only owner of state (see 03_ARCHITECTURE.md): both the popup
+ * The service worker is the only owner of state (see docs/03_ARCHITECTURE.md): both the popup
  * and the side panel are pure views, which is what lets them be open simultaneously
  * without drifting out of sync.
  */

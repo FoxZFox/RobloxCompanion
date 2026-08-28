@@ -10,7 +10,7 @@
  * So this reads the version nibble instead of assuming, exactly as the API probe reads a
  * response instead of trusting the docs. Nothing here is wired into a feature: it reports
  * what the ids are, and what is built on top of that comes after the answer, not before
- * (rule 7 of 05_IMPLEMENTATION_PLAN.md).
+ * (rule 7 of docs/05_IMPLEMENTATION_PLAN.md).
  */
 
 /** Roblox launched in 2006; a server cannot have started before that, or in the future. */

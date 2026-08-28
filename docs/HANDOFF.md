@@ -1,7 +1,8 @@
 # HANDOFF — อ่านไฟล์นี้ก่อนทำงานต่อ
 
 อัปเดต **28 ส.ค. 2026** · `npm run check` ผ่าน — typecheck สะอาด, **414 tests**, build ~2.0s
-· source ~20,400 บรรทัด · **schema v7** · **v0.12.0** · **release build: `npm run build:release` (§19)** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
+· source ~20,400 บรรทัด · **schema v7** · **v0.12.1** · **release build: `npm run build:release` (§19)**
+· เอกสารฝั่งเราย้ายมาอยู่ใน `docs/` แล้ว · root เหลือ `README.md` (EN) กับ `TH.md` (TH) ที่เป็น**คู่มือผู้ใช้** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
 
 ---
 
@@ -221,6 +222,16 @@ npm run watch     # rebuild อัตโนมัติ
 **หลังแก้โค้ด:** reload extension ที่ `chrome://extensions`
 · ถ้าแก้ content script / panel → **reload หน้า roblox.com ด้วย**
 
+**เปิด DevTools ตรงไหน** (ย้ายมาจาก README ตอนที่ README กลายเป็นคู่มือผู้ใช้):
+
+| ส่วน | วิธีเปิด |
+|---|---|
+| **Service worker** | `chrome://extensions` → การ์ดของ extension → คลิก **service worker** |
+| **Side panel / popup** | คลิกขวาในตัว panel → **Inspect** |
+| **Content script + in-page panel** | DevTools ของหน้า roblox.com → Console → เลือก context **Roblox Companion** |
+| **MAIN world script** | Console เดียวกัน เลือก context **top** |
+| **Storage** | DevTools ของ service worker → Application → Extension storage → Local |
+
 **ดู state ที่เก็บไว้** (console ของ service worker):
 ```js
 chrome.storage.local.get(null).then(console.log)
@@ -234,7 +245,7 @@ key: `rc:v` (=**4**) · `rc:settings` (override เท่านั้น) · `rc
 
 | ไฟล์ | เนื้อหา |
 |---|---|
-| `README.md` | วิธีใช้ · build · ข้อจำกัด · โครงสร้าง |
+| `../README.md` · `../TH.md` | **คู่มือผู้ใช้** (อังกฤษ / ไทย) — ไม่มีชื่อ endpoint ไม่มีเลข phase · ของฝั่งเราอยู่ใน `docs/` ทั้งหมด |
 | `01_FEATURE_MATRIX.md` | RoPro Free/Plus/Rex ทุก feature + เราทำได้แค่ไหน |
 | `02_ROBLOX_API_MAP.md` | endpoint ทุกตัว + สถานะ `verified-live` / `docs-only` |
 | `03_ARCHITECTURE.md` | layer · message protocol · storage · error isolation |

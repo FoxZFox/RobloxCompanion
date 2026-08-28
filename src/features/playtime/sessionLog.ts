@@ -101,7 +101,7 @@ export function describeDuration(entry: SessionLogEntry): string {
  * The server's age, in the only words that are true.
  *
  * Roblox's server list carries no start time, no uptime and no version - the fields
- * simply are not there (see 02_ROBLOX_API_MAP.md section 1). Everything this project can
+ * simply are not there (see docs/02_ROBLOX_API_MAP.md section 1). Everything this project can
  * say about a server's age comes from its own sightings, so the wording is "at least",
  * and a server we had never seen before the join gets a plain "not known" rather than a
  * zero that would read as "brand new".
