@@ -46,7 +46,15 @@ export class SmartJoinService {
     const capped = Boolean(request.outcome && !request.outcome.complete);
 
     if (firstPass.length === 0) {
-      return { chosen: null, ranked: [], considered: 0, loaded, capped, regionsProbed: 0 };
+      return {
+        chosen: null,
+        ranked: [],
+        considered: 0,
+        loaded,
+        capped,
+        regionsProbed: 0,
+        ...NO_PRIVATE,
+      };
     }
 
     const wantsRegion =
@@ -60,6 +68,7 @@ export class SmartJoinService {
         loaded,
         capped,
         regionsProbed: 0,
+        ...NO_PRIVATE,
       };
     }
 
@@ -80,9 +89,20 @@ export class SmartJoinService {
       loaded,
       capped,
       regionsProbed: countResolved(regions),
+      ...NO_PRIVATE,
     };
   }
 }
+
+/**
+ * Scoring knows nothing about private servers, and should not.
+ *
+ * The private-server preference is decided before any of this runs (see
+ * background/handlers/smartJoinHandlers.ts): it is a choice the user made, not a signal
+ * to be weighed, so folding it in here would mean scoring something that was never in
+ * the running.
+ */
+const NO_PRIVATE = { privatePick: null, privateNote: null } as const;
 
 function countResolved(regions: ReadonlyMap<string, RegionResult>): number {
   let resolved = 0;

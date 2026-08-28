@@ -4,6 +4,7 @@ import './CommandCenter.css';
 import { useAppState } from '../hooks/useAppState';
 import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { AppState, UiRequest } from '../models/messages';
+import { nextRovingIndex } from '../utils/rovingIndex';
 import { LastJoinedCard } from './LastJoinedCard';
 import { SmartJoinPanel } from './SmartJoinPanel';
 import { BlacklistTab, HistoryTab, ServersTab } from './tabs';
@@ -11,6 +12,9 @@ import { PlaytimePane } from './PlaytimePane';
 import { PrivateServersPane } from './PrivateServersPane';
 
 type TabKey = 'servers' | 'history' | 'blacklist' | 'playtime' | 'private';
+
+const TAB_PANEL_ID = 'rc-tabpanel';
+const tabId = (key: TabKey): string => `rc-tab-${key}`;
 
 interface TabDefinition {
   key: TabKey;
@@ -55,6 +59,16 @@ export function CommandCenter({ surface }: { surface: 'popup' | 'panel' }): Reac
 
   const placeId = state.experience?.placeId;
 
+  const visible = TABS.filter((entry) => !entry.flag || state.settings.features[entry.flag]);
+  /*
+   * Which tab is really showing, which is not always the one that was clicked: switching
+   * a feature off in Settings can hide the section someone is looking at, and falling
+   * back to the first visible one beats rendering an empty body under a selected tab
+   * that no longer exists.
+   */
+  const current = visible.find((entry) => entry.key === tab) ?? visible[0];
+  const active = current?.key ?? tab;
+
   return (
     <div className="rc-root">
       <header className="rc-header">
@@ -95,39 +109,79 @@ export function CommandCenter({ surface }: { surface: 'popup' | 'panel' }): Reac
         <Health state={state} />
       </div>
 
-      <nav className="rc-tabs" role="tablist">
-        {TABS.filter((entry) => !entry.flag || state.settings.features[entry.flag]).map((entry) => (
+      {/*
+        A real tablist, which means one tab stop rather than five: Tab moves past the
+        whole row, and the arrows move within it. Selection follows focus, as it should
+        when switching costs nothing - each tab renders from state that is already here.
+      */}
+      <div
+        className="rc-tabs"
+        role="tablist"
+        aria-label="Sections"
+        onKeyDown={(event) => {
+          const next = nextRovingIndex(event.key, current ? visible.indexOf(current) : 0, visible.length);
+          if (next === null) return;
+          const target = visible[next];
+          if (!target) return;
+          event.preventDefault();
+          setTab(target.key);
+          document.getElementById(tabId(target.key))?.focus();
+        }}
+      >
+        {visible.map((entry) => (
           <button
             key={entry.key}
+            id={tabId(entry.key)}
             type="button"
             role="tab"
             className="rc-tab"
-            aria-selected={tab === entry.key}
+            aria-selected={active === entry.key}
+            aria-controls={TAB_PANEL_ID}
+            // Roving: only the selected tab is in the tab order, so Tab leaves the row
+            // instead of walking through every section on the way to the content.
+            tabIndex={active === entry.key ? 0 : -1}
             onClick={() => setTab(entry.key)}
           >
             {entry.label}
           </button>
         ))}
-      </nav>
-
-      <div className="rc-body" role="tabpanel">
-        {error ? <div className="rc-banner">{error.message}</div> : null}
-        {tab === 'servers' ? <ServersTab state={state} busy={busy} send={dispatch} /> : null}
-        {tab === 'history' ? <HistoryTab state={state} busy={busy} send={dispatch} /> : null}
-        {tab === 'blacklist' ? <BlacklistTab state={state} busy={busy} send={dispatch} /> : null}
-        {tab === 'playtime' ? <PlaytimePane state={state} busy={busy} send={dispatch} /> : null}
-        {tab === 'private' ? <PrivateServersPane state={state} busy={busy} send={dispatch} /> : null}
       </div>
 
-      {toasts.length > 0 ? (
-        <div className="rc-toasts">
-          {toasts.map((toast) => (
-            <div key={toast.id} className={`rc-toast rc-toast--${toast.level}`} role="status">
-              {toast.message}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <div
+        className="rc-body"
+        role="tabpanel"
+        id={TAB_PANEL_ID}
+        aria-labelledby={tabId(active)}
+        aria-busy={busy}
+        // The panel scrolls, and a region that scrolls has to be reachable by keyboard
+        // or its content cannot be read without a mouse.
+        tabIndex={0}
+      >
+        {/* An error the user did not ask for has to interrupt, not wait to be noticed. */}
+        {error ? (
+          <div className="rc-banner" role="alert">
+            {error.message}
+          </div>
+        ) : null}
+        {active === 'servers' ? <ServersTab state={state} busy={busy} send={dispatch} /> : null}
+        {active === 'history' ? <HistoryTab state={state} busy={busy} send={dispatch} /> : null}
+        {active === 'blacklist' ? <BlacklistTab state={state} busy={busy} send={dispatch} /> : null}
+        {active === 'playtime' ? <PlaytimePane state={state} busy={busy} send={dispatch} /> : null}
+        {active === 'private' ? <PrivateServersPane state={state} busy={busy} send={dispatch} /> : null}
+      </div>
+
+      {/*
+        Rendered even when empty, which is the whole trick: a live region has to be in the
+        document before the message arrives, or the screen reader has nothing to watch and
+        the first toast - the one confirming the join - goes unspoken.
+      */}
+      <div className="rc-toasts" aria-live="polite" aria-atomic="false">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`rc-toast rc-toast--${toast.level}`} role="status">
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

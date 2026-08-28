@@ -1,4 +1,5 @@
 import { ThemePicker } from '../components/ThemePicker';
+import { Section } from './controls';
 import type { AppState, UiRequest } from '../models/messages';
 
 interface Props {
@@ -16,8 +17,7 @@ interface Props {
  */
 export function ThemeSettings({ state, busy, send }: Props): React.JSX.Element {
   return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">Theme</div>
+    <Section title="Theme">
 
       <p className="rc-header__sub" style={{ marginTop: 0 }}>
         Colour only — no images, no fonts and no layout changes, so a theme cannot move
@@ -31,6 +31,6 @@ export function ThemeSettings({ state, busy, send }: Props): React.JSX.Element {
         Open the Theme tool in the in-page panel on roblox.com to see which parts of their
         page a theme actually matched. This page cannot measure that from here.
       </p>
-    </section>
+    </Section>
   );
 }

@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { describeExpiry } from '../features/privateServers/privateServers';
+import { sendQuery } from '../hooks/sendQuery';
 import type { AppState, UiRequest } from '../models/messages';
 import type { PrivateServer } from '../models/privateServer';
+import { copyText } from '../utils/clipboard';
 
 interface Props {
   state: AppState;
@@ -10,13 +12,13 @@ interface Props {
 }
 
 /**
- * Private servers you own (phase 6).
+ * Private servers you own, and the ones you may enter here (phase 6).
  *
- * What this deliberately does not have is a Join button. Roblox's list of your private
- * servers carries no access code, and the only documented way to obtain one is a PATCH -
- * a write that can regenerate the link, invalidating the one you have already given your
- * friends. Whether a plain GET returns the code is being probed; until that is answered,
- * this opens Roblox's own page rather than guessing (§8, and the region lesson).
+ * Two things it will not do, both for the same reason - a write to Roblox on the user's
+ * behalf is not ours to make. It never creates a server, because that spends Robux (§8);
+ * and it never mints a share link, because minting one means PATCHing the server, which
+ * replaces the code and silently breaks whatever link the user already handed out. Where
+ * Roblox has already made a link, Share link reads it; where it has not, it says so.
  */
 export function PrivateServersPane({ state, busy, send }: Props): React.JSX.Element {
   const { privateServers: data } = state;
@@ -134,7 +136,9 @@ export function PrivateServersPane({ state, busy, send }: Props): React.JSX.Elem
           enter here — no link is created or regenerated, so the invite links you have
           shared are untouched. Servers you own on other experiences are listed above
           without a Join button because Roblox only discloses codes for the place you are
-          on.
+          on. <strong>Share link</strong> reads the link Roblox has already made for a
+          server you own; if there is none, make one on its Roblox page — generating one
+          replaces the previous link, and that is not a thing to do on your behalf.
         </p>
         <div className="rc-btn-row">
           <button
@@ -163,6 +167,35 @@ function ServerRow({
   send: (request: UiRequest) => void;
 }): React.JSX.Element {
   const expiry = describeExpiry(server, now);
+  /*
+   * Local, and never lifted into AppState: the link admits anyone holding it, so it is
+   * asked for one at a time and lives no longer than this row (see models/messages.ts).
+   */
+  const [outcome, setOutcome] = useState<string | null>(null);
+
+  const askForLink = (): void => {
+    setOutcome(null);
+    void sendQuery({
+      type: 'query/privateServerLink',
+      privateServerId: server.privateServerId,
+    }).then(async (result) => {
+      if (!result.ok) {
+        setOutcome(result.error.message);
+        return;
+      }
+      if (!result.data.url) {
+        setOutcome(result.data.reason);
+        return;
+      }
+      // Straight to the clipboard and nowhere else - not into state, not onto the screen.
+      const copied = await copyText(result.data.url);
+      setOutcome(
+        copied
+          ? `Link copied. ${result.data.reason}`
+          : 'Could not reach the clipboard. Open the server on Roblox and copy the link there.',
+      );
+    });
+  };
 
   return (
     <div className="rc-row">
@@ -205,7 +238,26 @@ function ServerRow({
         >
           Open on Roblox
         </button>
+        <button
+          type="button"
+          className="rc-btn"
+          aria-label={`Copy the share link for ${server.name}`}
+          title="Copies the link Roblox has already made for this server. It creates nothing and changes nothing."
+          disabled={busy}
+          onClick={askForLink}
+        >
+          🔗 Share link
+        </button>
       </div>
+      {/*
+        Spoken as well as shown: the button's whole outcome is invisible - the text went
+        to the clipboard - so nothing else would tell a screen reader user it worked.
+      */}
+      {outcome ? (
+        <div className="rc-footnote" role="status">
+          {outcome}
+        </div>
+      ) : null}
     </div>
   );
 }

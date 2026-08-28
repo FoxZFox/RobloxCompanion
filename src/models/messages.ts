@@ -2,12 +2,14 @@ import type { BlacklistCheck, BlacklistedPlayer, BlacklistReason } from './black
 import type { ExperienceContext } from './experience';
 import type { CustomFlag } from './flags';
 import type { ApiProbeResult } from '../features/devtools/apiProbe';
+import type { JobIdClockReport } from '../features/devtools/jobIdClock';
 import type { LiveExperienceStats } from '../features/experience/liveStats';
 import type { PrivateServerState } from './privateServer';
 import type { SearchState } from './search';
 import type { ProfileState } from './profile';
 import type { PresenceSummary } from '../features/playerBlacklist/presence';
 import type { PlaySession, PlaytimeTotals } from '../features/playtime/playtime';
+import type { SessionLogEntry } from '../features/playtime/sessionLog';
 import type { LastJoined, ServerReport, ServerStatus, ServerView } from './server';
 import type { Settings, SettingsPatch } from './settings';
 import type { SmartJoinPlan } from './smartJoin';
@@ -64,6 +66,7 @@ export type UiRequest =
   | { type: 'flags/toggleOnServer'; placeId: string; jobId: string; flagId: string; applied: boolean }
   | { type: 'backup/import'; text: string }
   | { type: 'dev/probeApis' }
+  | { type: 'dev/inspectJobIds' }
   | { type: 'playtime/end' }
   | { type: 'playtime/clear' }
   | { type: 'stats/refresh'; placeId: string }
@@ -79,6 +82,37 @@ export type UiRequest =
   | { type: 'tab/openGame'; placeId: string };
 
 export type UiRequestType = UiRequest['type'];
+
+/* ------------------------------------------------- UI -> SW, one-shot queries */
+
+/**
+ * The one exception to "every request answers with a whole AppState", and it exists for
+ * the one reason that justifies an exception: the answer is a secret.
+ *
+ * AppState is copied into every open surface and rebuilt on every message, which is
+ * exactly what makes it the wrong carrier for a link that admits a stranger to somebody's
+ * private server. A query is asked once, answered once, and the answer is never stored,
+ * never broadcast, and never part of the snapshot any other surface receives.
+ *
+ * Anything that is not a secret belongs in AppState. Adding a second query type to save a
+ * round trip would be trading the consistency guarantee for nothing.
+ */
+export type UiQuery = { type: 'query/privateServerLink'; privateServerId: number };
+
+export interface PrivateServerLink {
+  privateServerId: number;
+  /** Null when Roblox has never minted a link for this server; `reason` says so. */
+  url: string | null;
+  /** Shown verbatim, so a missing link explains itself rather than looking broken. */
+  reason: string;
+}
+
+/** Maps each query to what it answers with, so a caller cannot mistype the pairing. */
+export interface UiQueryResults {
+  'query/privateServerLink': PrivateServerLink;
+}
+
+export type UiQueryType = UiQuery['type'];
 
 /* ------------------------------------------------------------- SW -> UI */
 
@@ -110,6 +144,19 @@ export interface HealthSummary {
   blacklistCheck: BlacklistCheck;
 }
 
+/**
+ * What the last presence poll did, for a status line the user can act on.
+ *
+ * Kept because "is this working?" is otherwise unanswerable: a tracker that has correctly
+ * decided to do nothing looks exactly like one that is broken.
+ */
+export interface PresenceFollowStatus {
+  at: number;
+  action: 'start' | 'confirm' | 'end' | 'none';
+  /** The sentence the decision came with, shown verbatim. */
+  reason: string;
+}
+
 export interface HistoryEntry {
   placeId: string;
   jobId: string;
@@ -135,6 +182,10 @@ export interface AppState {
   allCustomFlags: CustomFlag[];
   /** Results of the last Developer Mode API probe, if one has been run. */
   apiProbe: ApiProbeResult[] | null;
+  /** What the last Developer Mode job-id inspection found (dev only). */
+  jobIdClock: JobIdClockReport | null;
+  /** What the last presence poll decided, when session following is on. */
+  presenceFollow: PresenceFollowStatus | null;
   /** Private servers this account owns, once the user has asked for them (phase 6). */
   privateServers: PrivateServerState;
   /** The last experience search (phase 7). */
@@ -147,6 +198,8 @@ export interface AppState {
   liveStats: LiveExperienceStats | null;
   /** Per-experience playtime totals, longest first. */
   playtime: PlaytimeTotals[];
+  /** The last visits, server by server, newest first (§18 with duration). */
+  sessions: SessionLogEntry[];
   /** The session currently open, if any. */
   openSession: PlaySession | null;
   lastJoined: (LastJoined & { report?: ServerReport }) | null;

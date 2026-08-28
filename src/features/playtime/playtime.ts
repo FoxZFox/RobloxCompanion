@@ -5,6 +5,54 @@ export interface PlaySession {
   startedAt: number;
   /** Absent while the session is still open. */
   endedAt?: number;
+  /**
+   * The earliest moment we know this server existed, recorded at the join.
+   *
+   * Absent whenever the join was our first sighting, which is most of the time - and
+   * absent is the honest answer there, not zero. Roblox publishes no server start time,
+   * so this is a floor on the server's age and is labelled as one wherever it is shown.
+   */
+  serverFirstSeenAt?: number;
+  /**
+   * The last moment Roblox's presence answered that this session was still running.
+   *
+   * This is the difference between a measurement and a guess. Without it the only end we
+   * can infer is "they must have stopped at some point", which is why an open session is
+   * capped at the idle timeout. With it, a session confirmed thirty seconds ago is known
+   * to be live, and a three-hour game is three hours rather than a truncated 45 minutes.
+   */
+  confirmedAt?: number;
+  /** How the session began: we launched it, or Roblox said the user was already in it. */
+  startedBy?: SessionBoundary;
+  /** How it ended. Only `presence` means we actually saw it end. */
+  endedBy?: SessionBoundary | 'stop' | 'stale';
+}
+
+/**
+ * Where a session boundary came from.
+ *
+ * `join` is our own launch - a start we witnessed and an end we only inferred, because
+ * the next launch is the first thing that tells us the last one is over. `presence` is
+ * Roblox answering about the signed-in user's own account, which is the only source that
+ * can say a session ended when it ended.
+ */
+export type SessionBoundary = 'join' | 'presence';
+
+/**
+ * The last moment there was positive evidence a session was still running.
+ *
+ * Falls back to the start, which is the only evidence an unfollowed session ever has.
+ */
+export function lastEvidence(session: PlaySession): number {
+  return session.confirmedAt ?? session.startedAt;
+}
+
+/** When an abandoned session should be recorded as having ended. */
+export function staleEndFor(
+  session: PlaySession,
+  idleTimeoutMs = SESSION_IDLE_TIMEOUT_MS,
+): number {
+  return lastEvidence(session) + idleTimeoutMs;
 }
 
 export interface PlaytimeTotals {
@@ -41,24 +89,33 @@ export function closeSession(session: PlaySession, endedAt: number): PlaySession
   return { ...session, endedAt: Math.max(endedAt, session.startedAt) };
 }
 
-/** Duration of a session, clamped so a stale one cannot report an absurd total. */
+/**
+ * Duration of a session, never counting past the last evidence it was still running.
+ *
+ * A closed session is simply its two timestamps. An open one runs to now, but no further
+ * than the idle timeout past its last evidence - the start, or the last presence
+ * confirmation. That single substitution is what lets a followed session run for hours
+ * while an unfollowed one still cannot turn a closed laptop into a day of playtime.
+ */
 export function sessionDuration(
   session: PlaySession,
   now: number,
   idleTimeoutMs = SESSION_IDLE_TIMEOUT_MS,
 ): number {
-  const end = session.endedAt ?? now;
-  const elapsed = Math.max(0, end - session.startedAt);
-  return session.endedAt === undefined ? Math.min(elapsed, idleTimeoutMs) : elapsed;
+  if (session.endedAt !== undefined) {
+    return Math.max(0, session.endedAt - session.startedAt);
+  }
+  const cap = staleEndFor(session, idleTimeoutMs);
+  return Math.max(0, Math.min(now, cap) - session.startedAt);
 }
 
-/** True once an open session has been left untouched long enough to be abandoned. */
+/** True once an open session has gone unconfirmed long enough to be abandoned. */
 export function isStale(
   session: PlaySession,
   now: number,
   idleTimeoutMs = SESSION_IDLE_TIMEOUT_MS,
 ): boolean {
-  return session.endedAt === undefined && now - session.startedAt >= idleTimeoutMs;
+  return session.endedAt === undefined && now - lastEvidence(session) >= idleTimeoutMs;
 }
 
 export function summarise(

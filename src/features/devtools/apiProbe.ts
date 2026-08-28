@@ -11,6 +11,7 @@ import {
   myPrivateServersUrl,
   omniSearchUrl,
   presenceUrl,
+  lastOnlineUrl,
   privateServersEnabledUrl,
   vipServerUrl,
   publicServersUrl,
@@ -126,6 +127,7 @@ export class ApiProbe {
     const self = await this.authenticatedUser();
     results.push(self.result);
     results.push(await this.presence(self.userId));
+    results.push(await this.lastOnline(self.userId));
     results.push(await this.friends(self.userId));
     results.push(await this.avatar(self.userId));
     results.push(await this.omniSearch());
@@ -206,6 +208,56 @@ export class ApiProbe {
         ...base,
         verdict: 'ok',
         detail: entry.gameId ? 'gameId present for own account' : 'gameId is null even for own account',
+        sample: sample(entry),
+      };
+    } catch (err) {
+      return { ...base, verdict: 'failed', detail: describe(err) };
+    }
+  }
+
+  /**
+   * When each of a list of users was last online (phase 8's "last online").
+   *
+   * Worth a probe of its own even though presence is already verified: they are separate
+   * endpoints with separate privacy rules, and `presence/users` answering says nothing
+   * about whether this one will. Pointed at the signed-in account, like every probe here.
+   *
+   * The shape question it settles is whether a timestamp comes back at all, and under
+   * what field name - the map records neither, because nobody has ever called it.
+   */
+  private async lastOnline(userId: number | null): Promise<ApiProbeResult> {
+    const base = {
+      id: 'lastOnline',
+      label: 'Last online — own account (phase 8)',
+      documentedAs: 'planned' as const,
+    };
+    if (userId === null) return { ...base, verdict: 'skipped', detail: 'Needs the signed-in user' };
+    if (!(await this.hasAccess(OPTIONAL_ORIGINS.presence))) {
+      return { ...base, verdict: 'skipped', detail: 'Grant optional access first' };
+    }
+
+    try {
+      const body = await this.http.postJson<{
+        lastOnlineTimestamps?: Array<{ userId?: number; lastOnline?: string }>;
+      }>(lastOnlineUrl(), { userIds: [userId] });
+
+      const entry = body.lastOnlineTimestamps?.[0];
+      if (!entry) {
+        // Not a failure: the endpoint answered, in a shape the docs did not describe. That
+        // is precisely the difference this tool exists to record.
+        return {
+          ...base,
+          verdict: 'empty',
+          detail: 'Answered, but not with the documented lastOnlineTimestamps list',
+          sample: sample(body),
+        };
+      }
+      return {
+        ...base,
+        verdict: entry.lastOnline ? 'ok' : 'empty',
+        detail: entry.lastOnline
+          ? `last online ${entry.lastOnline}`
+          : 'The entry came back without a timestamp',
         sample: sample(entry),
       };
     } catch (err) {

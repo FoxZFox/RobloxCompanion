@@ -7,7 +7,8 @@ import {
   type PresenceSummary,
 } from '../features/playerBlacklist/presence';
 import { flagsForPlace } from '../models/flags';
-import { summarise } from '../features/playtime/playtime';
+import { summarise, type PlaySession } from '../features/playtime/playtime';
+import { buildSessionLog } from '../features/playtime/sessionLog';
 import { buildFlaggedViews, buildViews } from '../features/servers/liveness';
 import { applyFilters, sortViews } from '../features/servers/serverFilters';
 import type { AppContext } from './context';
@@ -36,13 +37,14 @@ export async function buildState(
       customFlags: [],
       allCustomFlags: await context.flags.list(),
       apiProbe: context.lastProbe,
+      jobIdClock: context.lastJobIdClock,
+      presenceFollow: context.lastPresenceFollow,
       presence: context.presenceSummary,
       privateServers: context.privateServerState,
       search: context.searchState,
       profile: context.profileState,
       liveStats: null,
-      playtime: summarise(await context.playtime.list(), Date.now()),
-      openSession: await context.playtime.openSession(),
+      ...playtimeState(await context.playtime.list(), Date.now()),
       lastJoined: null,
       smartJoinPlan: null,
       health: emptyHealth(),
@@ -87,6 +89,8 @@ export async function buildState(
     customFlags: flagsForPlace(allCustomFlags, placeId),
     allCustomFlags,
     apiProbe: context.lastProbe,
+    jobIdClock: context.lastJobIdClock,
+    presenceFollow: context.lastPresenceFollow,
     presence: context.presenceSummary,
     privateServers: context.privateServerState,
     search: context.searchState,
@@ -94,8 +98,7 @@ export async function buildState(
     liveStats: experience.universeId
       ? (context.statsCache.get(experience.universeId) ?? null)
       : null,
-    playtime: summarise(await context.playtime.list(), Date.now()),
-    openSession: await context.playtime.openSession(),
+    ...playtimeState(await context.playtime.list(), Date.now()),
     lastJoined: lastJoined
       ? lastJoinedReport
         ? { ...lastJoined, report: lastJoinedReport }
@@ -204,3 +207,22 @@ export const IDLE_SCAN: ScanState = {
   lastScanAt: null,
   canLoadMore: false,
 };
+
+/**
+ * The three playtime-shaped fields of AppState, from one read of the session list.
+ *
+ * They are derived from the same array - totals per experience, the visit log, and
+ * whichever session is still open - so taking it once keeps them describing the same
+ * instant. The open session is found here rather than asked for separately for the same
+ * reason.
+ */
+function playtimeState(
+  sessions: PlaySession[],
+  now: number,
+): Pick<AppState, 'playtime' | 'sessions' | 'openSession'> {
+  return {
+    playtime: summarise(sessions, now),
+    sessions: buildSessionLog(sessions, now),
+    openSession: sessions.find((session) => session.endedAt === undefined) ?? null,
+  };
+}

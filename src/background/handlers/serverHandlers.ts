@@ -73,6 +73,16 @@ export async function joinServer(
   const outcome = context.getScan(placeId);
   const live = outcome?.servers.find((s) => s.jobId === jobId);
 
+  /*
+   * Read before joining, because `markJoined` stamps a first sighting of its own for a
+   * server we have never recorded - after which "how old was it when I joined" would
+   * always answer "zero". The two sources are the report (a server the user has acted on
+   * before) and this session's scans (a server browsed for a while before joining).
+   */
+  const seenBefore =
+    (await context.reports.get(placeId, jobId))?.firstSeenAt ??
+    context.firstSightingOf(placeId, jobId);
+
   const report = await context.join.join(placeId, jobId);
 
   const experience = await context.getExperience(placeId);
@@ -89,6 +99,9 @@ export async function joinServer(
       placeId,
       jobId,
       ...(experience.name ? { gameName: experience.name } : {}),
+      // Omitted rather than set to the join time when we have nothing: the session log
+      // renders a missing value as "not known", and a present one as an age.
+      ...(seenBefore !== undefined ? { serverFirstSeenAt: seenBefore } : {}),
     });
   }
 

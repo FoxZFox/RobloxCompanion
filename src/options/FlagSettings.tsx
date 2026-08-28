@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FLAG_ICON_CHOICES, MAX_FLAG_NAME_LENGTH } from '../models/flags';
 import type { AppState, UiRequest } from '../models/messages';
+import { Section } from './controls';
 
 interface Props {
   state: AppState;
@@ -34,8 +35,7 @@ export function FlagSettings({ state, busy, send }: Props): React.JSX.Element {
   };
 
   return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">Your flags</div>
+    <Section title="Your flags">
 
       <p className="rc-header__sub" style={{ marginTop: 0 }}>
         The built-in statuses cover broken and hostile servers. These are for whatever your
@@ -105,8 +105,15 @@ export function FlagSettings({ state, busy, send }: Props): React.JSX.Element {
         </div>
 
         <div className="rc-field">
-          <span className="rc-field__label">Icon</span>
-          <div className="rc-flagpicker">
+          {/*
+            A caption over a row of buttons, not a label for one control: `htmlFor` has
+            nothing single to point at, so the row is named as a group instead. Without
+            this the icon buttons announce themselves with no idea what they choose.
+          */}
+          <span className="rc-field__label" id="rc-flag-icon-label">
+            Icon
+          </span>
+          <div className="rc-flagpicker" role="group" aria-labelledby="rc-flag-icon-label">
             {FLAG_ICON_CHOICES.map((choice) => (
               <button
                 key={choice}
@@ -160,6 +167,6 @@ export function FlagSettings({ state, busy, send }: Props): React.JSX.Element {
           Add flag
         </button>
       </form>
-    </section>
+    </Section>
   );
 }

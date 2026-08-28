@@ -67,6 +67,24 @@ export interface AvoidSettings {
   blacklistedPlayersWhenDetectable: boolean;
 }
 
+/**
+ * Playtime tracking (spec section 23).
+ *
+ * The one setting here decides whether the extension asks Roblox where the signed-in user
+ * is. Off by default, because it is a repeating request nobody asked for - and because a
+ * feature that quietly polls in the background should be a decision, not a default.
+ */
+export interface PlaytimeSettings {
+  /**
+   * Ask Roblox once a minute where this account is, so a session that began outside the
+   * extension is still tracked and one that ends is closed when it ends.
+   *
+   * Reads the signed-in account and nothing else. It needs the presence host, which is an
+   * optional permission that is not requested at install.
+   */
+  followPresence: boolean;
+}
+
 export interface PrivacySettings {
   /**
    * Off by default and stays off in V1: nothing about the user's servers, reports or
@@ -81,6 +99,7 @@ export interface Settings {
   features: FeatureFlags;
   serverBrowser: ServerBrowserSettings;
   smartJoin: SmartJoinSettings;
+  playtime: PlaytimeSettings;
   avoid: AvoidSettings;
   privacy: PrivacySettings;
   theme: ThemeSettings;
@@ -109,6 +128,7 @@ export const DEFAULT_SETTINGS: Settings = {
     commandPalette: true,
   },
   smartJoin: DEFAULT_SMART_JOIN,
+  playtime: { followPresence: false },
   serverBrowser: {
     scanPages: DEFAULT_SCAN_PAGES,
     sort: 'Asc',
@@ -167,6 +187,7 @@ export function mergePatch(base: SettingsPatch, patch: SettingsPatch): SettingsP
 
   if (patch.features) next.features = { ...base.features, ...patch.features };
   if (patch.serverBrowser) next.serverBrowser = { ...base.serverBrowser, ...patch.serverBrowser };
+  if (patch.playtime) next.playtime = { ...base.playtime, ...patch.playtime };
   if (patch.avoid) next.avoid = { ...base.avoid, ...patch.avoid };
   if (patch.privacy) next.privacy = { ...base.privacy, ...patch.privacy };
   if (patch.panel) next.panel = { ...base.panel, ...patch.panel };
@@ -201,6 +222,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     features: { ...base.features, ...patch.features },
     serverBrowser: { ...base.serverBrowser, ...patch.serverBrowser },
     smartJoin: mergeSmartJoin(base.smartJoin, patch.smartJoin),
+    playtime: { ...base.playtime, ...patch.playtime },
     avoid: { ...base.avoid, ...patch.avoid },
     privacy: { ...base.privacy, ...patch.privacy },
     theme: mergeTheme(base.theme, patch.theme),
@@ -224,5 +246,6 @@ function mergeSmartJoin(
     population: patch.population ?? base.population,
     weights: { ...base.weights, ...patch.weights },
     preferredRegions: patch.preferredRegions ?? base.preferredRegions,
+    preferOwnPrivateServer: patch.preferOwnPrivateServer ?? base.preferOwnPrivateServer,
   };
 }

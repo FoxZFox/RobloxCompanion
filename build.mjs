@@ -1,6 +1,6 @@
 import { build as esbuild } from 'esbuild';
 import { build as viteBuild } from 'vite';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 
 /**
  * Two-stage build, because the extension has two kinds of JavaScript with incompatible
@@ -89,6 +89,55 @@ async function assertNoRuntimeImports() {
   }
 }
 
+/*
+ * Size budgets for the three scripts, in kilobytes.
+ *
+ * These are the only outputs whose weight the user pays for without asking: content.js
+ * and main-world.js are injected into every roblox.com page load, and background.js is
+ * parsed each time Chrome wakes the service worker - which MV3 does constantly. The
+ * extension's own pages are opened deliberately and are not budgeted here.
+ *
+ * Measured on 28 Aug 2026, at v0.8.0: content 286 KB, background 66 KB, main-world 1 KB.
+ * Each budget is roughly a tenth above what was measured, so ordinary growth is silent
+ * and a step change - a library pulled into the content script, say - is not. Raising one
+ * is a decision to make on purpose, with the new number measured, not a formality.
+ */
+const SIZE_BUDGET_KB = {
+  'dist/content.js': 320,
+  'dist/background.js': 96,
+  'dist/main-world.js': 4,
+};
+
+/**
+ * Reports what each injected script weighs, and fails the build when one outgrows its
+ * budget.
+ *
+ * Printed on every build rather than only on failure: a number nobody sees is a number
+ * nobody notices creeping, and this is the one performance figure the project can measure
+ * honestly without guessing at anyone's machine.
+ */
+async function reportSizes() {
+  const rows = [];
+  let over = null;
+
+  for (const script of SCRIPTS) {
+    const { size } = await stat(script.outfile);
+    const kb = size / 1024;
+    const budget = SIZE_BUDGET_KB[script.outfile];
+    rows.push(`  ${script.outfile.padEnd(22)} ${kb.toFixed(1).padStart(7)} KB / ${budget} KB`);
+    if (budget !== undefined && kb > budget) over ??= { outfile: script.outfile, kb, budget };
+  }
+
+  console.log(rows.join('\n'));
+  if (over) {
+    throw new Error(
+      `${over.outfile} is ${over.kb.toFixed(1)} KB, over its ${over.budget} KB budget. ` +
+        'It is injected into every Roblox page load, so either trim it or raise the budget ' +
+        'deliberately in build.mjs.',
+    );
+  }
+}
+
 /**
  * The in-page panel renders in a Shadow DOM root, which cannot see a stylesheet emitted
  * into the main document, so the shared CSS is compiled into a string module. Running it
@@ -120,6 +169,7 @@ async function run() {
   await buildScripts();
   await assertNoRuntimeImports();
   await syncVersion();
+  await reportSizes();
   console.log(`built in ${Date.now() - started}ms`);
 }
 

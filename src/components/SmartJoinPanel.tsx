@@ -14,6 +14,33 @@ export function SmartJoinPanel({ state }: { state: AppState }): React.JSX.Elemen
   const plan = state.smartJoinPlan;
   if (!plan) return null;
 
+  /*
+   * A private server was taken, so there is no score to explain and no coverage to
+   * report - nothing was scored and no public page was fetched. Saying "best of 0
+   * servers" here would be worse than saying nothing; this says what actually happened.
+   */
+  if (plan.privatePick) {
+    const pick = plan.privatePick;
+    return (
+      <div className="rc-card">
+        <div className="rc-card__label">Smart Join &mdash; your private server</div>
+        <div className="rc-row__top">
+          <strong>🔒 {pick.name}</strong>
+          {pick.playing !== null && pick.maxPlayers !== null ? (
+            <span className="rc-row__count">
+              {pick.playing}/{pick.maxPlayers}
+            </span>
+          ) : null}
+        </div>
+        <div className="rc-meta">{pick.reason}</div>
+        <div className="rc-smart__coverage">
+          No public servers were scored, and none were loaded — the preference in Settings
+          says to take a private server here when there is one.
+        </div>
+      </div>
+    );
+  }
+
   if (!plan.chosen) {
     return (
       <div className="rc-card">
@@ -87,6 +114,12 @@ function Coverage({ plan }: { plan: SmartJoinPlan }): React.JSX.Element {
       {plan.regionsProbed > 0
         ? ` · ${plan.regionsProbed} region ${plan.regionsProbed === 1 ? 'lookup' : 'lookups'}`
         : ''}
+      {/*
+        Only ever set when the private preference is on, so a user who does not use it
+        never reads about it - and a user who does is told why it did not apply, rather
+        than left wondering whether the setting works.
+      */}
+      {plan.privateNote ? <div>{plan.privateNote}</div> : null}
     </div>
   );
 }

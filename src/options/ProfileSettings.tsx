@@ -1,5 +1,6 @@
 import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
 import { OptionalAccess } from './OptionalAccess';
+import { Section } from './controls';
 
 const FRIENDS = [OPTIONAL_ORIGINS.friends];
 
@@ -12,8 +13,7 @@ const FRIENDS = [OPTIONAL_ORIGINS.friends];
  */
 export function ProfileSettings(): React.JSX.Element {
   return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">Profiles</div>
+    <Section title="Profiles">
 
       <p className="rc-header__sub" style={{ marginTop: 0 }}>
         Opens on someone&apos;s profile and answers one question: how many friends you have
@@ -27,6 +27,6 @@ export function ProfileSettings(): React.JSX.Element {
         visible — when it does not, the panel says so rather than reporting nothing in
         common.
       </OptionalAccess>
-    </section>
+    </Section>
   );
 }

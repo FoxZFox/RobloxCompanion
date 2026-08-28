@@ -4,11 +4,12 @@ import { useLiveStats } from '../../hooks/useLiveStats';
 import type { UiRequest } from '../../models/messages';
 import { useDraggable, type Point, type Size } from './useDraggable';
 import { resolveTool, visibleTools } from './tools';
-import { nextToolIndex } from './railNavigation';
+import { nextRovingIndex } from '../../utils/rovingIndex';
 import { onPanelRequest } from './panelBus';
 import { CommandPalette } from './CommandPalette';
 import { usePaletteHotkey } from './useHotkey';
 import { detectPageContext, parseUserId } from '../../utils/robloxUrl';
+import { copyText } from '../../utils/clipboard';
 
 const DEFAULT_SIZE: Size = { width: 420, height: 560 };
 
@@ -28,7 +29,7 @@ function moveTool(
   select: (id: string) => void,
 ): void {
   const current = tools.findIndex((tool) => tool.id === activeId);
-  const next = nextToolIndex(event.key, current, tools.length);
+  const next = nextRovingIndex(event.key, current, tools.length);
   if (next === null) return;
 
   event.preventDefault();
@@ -151,7 +152,7 @@ export function PanelShell(): React.JSX.Element | null {
         page: detectPageContext(window.location.href),
         userId: parseUserId(window.location.href),
         send: dispatch,
-        copy: copyText,
+        copy: (text: string) => void copyText(text),
         openPanel: (tool) => {
           if (tool) selectTool(tool);
           setOpenState(true);
@@ -328,26 +329,4 @@ export function PanelShell(): React.JSX.Element | null {
     </div>
     </>
   );
-}
-
-/**
- * Clipboard from a content script.
- *
- * navigator.clipboard needs a secure context and can be refused, so a textarea fallback
- * keeps "copy user ID" working rather than failing silently.
- */
-function copyText(text: string): void {
-  void navigator.clipboard?.writeText(text).catch(() => {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.append(area);
-    area.select();
-    try {
-      document.execCommand('copy');
-    } finally {
-      area.remove();
-    }
-  });
 }

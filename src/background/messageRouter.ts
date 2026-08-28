@@ -2,6 +2,9 @@ import type { AppState, Result, SwEvent, UiRequest } from '../models/messages';
 import { AppError, serializeError } from '../utils/errors';
 import { BackupService } from '../services/storage/BackupService';
 import { applySurfaceBehavior } from './surfaceBehavior';
+import { syncPresenceAlarm } from './alarms';
+import { inspectJobIds } from '../features/devtools/jobIdClock';
+import { collectJobIdSample } from './handlers/jobIdSample';
 import { detectActivePlaceId } from '../utils/robloxUrl';
 import { gamePageUrl } from '../services/roblox/endpoints';
 import type { AppContext } from './context';
@@ -158,6 +161,15 @@ async function apply(
       // The surface preference decides what the toolbar icon does, so it has to take
       // effect the moment it changes rather than at the next browser start.
       if (before.surface !== after.surface) await applySurfaceBehavior(after.surface);
+
+      // Same reasoning for session following: switching it on should start tracking now,
+      // and switching it off should stop the alarm rather than leave it firing.
+      if (
+        before.playtime.followPresence !== after.playtime.followPresence ||
+        before.features.playtime !== after.features.playtime
+      ) {
+        await syncPresenceAlarm(context);
+      }
       return;
     }
 
@@ -243,6 +255,14 @@ async function apply(
         ...(placeId ? { placeId } : {}),
         ...(experience?.universeId ? { universeId: experience.universeId } : {}),
       });
+      return;
+    }
+
+    case 'dev/inspectJobIds': {
+      // Reads ids we already hold - this session's scans, then stored history - and
+      // computes locally. No request is made, which is the point: the question is about
+      // the shape of the ids, not about Roblox.
+      context.lastJobIdClock = inspectJobIds(await collectJobIdSample(context));
       return;
     }
 

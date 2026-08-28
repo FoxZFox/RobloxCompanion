@@ -21,17 +21,17 @@ Smart Join → เล่น → เจอ exploiter → Alt+Tab → กด ⚠ �
 | 3 | Smart Join | ✅ |
 | 4 | Custom flags + notes | ✅ |
 | 5 | Import / Export + Presence | ✅ |
-| 6 | Private Servers | ✅ list + 🔒 join |
-| 7 | Playtime + live stats + 🔍 quick search | ✅ |
-| 8 | Themes + 👤 Profiles | ✅ · Avatar ⬜ |
-| 9 | Trading | ⬜ |
-| 10 | Polish | 🟡 Command Palette ✅ · a11y panel/palette ✅ · i18n ค้าง |
+| 6 | Private Servers | ✅ list + 🔒 join + 🔗 share link + ⚡ smart preference |
+| 7 | Playtime + live stats + 🔍 quick search + ⏱ visit log | ✅ |
+| 8 | Themes + 👤 Profiles | ✅ · Last online ⏳ รอ probe · Avatar ⬜ (ติดที่ write) |
+| 9 | Trading | ⬜ บล็อก — บัญชีทดสอบไม่มีเทรดให้ดูรูปร่าง |
+| 10 | Polish | ✅ Command Palette · a11y ครบทุก surface · size budget · **i18n = ไม่ทำ ตั้งใจ** |
 
 **ใช้งานได้แล้วตอนนี้:** browse/paginate/filter public servers · **⚡ Smart Join + Explain Why** ·
 Join Lowest · Random · Rejoin · Server History · flag `Clean / Exploiter / Bugged / Avoid` ·
 **custom flags ของตัวเอง** · **server notes** · favourite · skip flagged server ตอน auto-join ·
 Player Blacklist (local) · **Import / Export JSON** · **Playtime** · **Live like/dislike** ·
-**⌘K Command Palette** · **🎨 Themes** · **🔒 Private servers ที่เราเป็นเจ้าของ** · **Developer Mode API probe** · Settings · Dashboard
+**⏱ Visit log ต่อเซิร์ฟ** · **⌘K Command Palette** · **🎨 Themes** · **🔒 Private servers** (list · join · 🔗 share link · ให้ Smart Join เลือกก่อน public ได้) · **👤 Mutual friends** · **🔍 Quick search** · **Developer Mode API probe** · Settings · Dashboard
 
 > 📌 **จะทำงานต่อ อ่าน [`HANDOFF.md`](HANDOFF.md) ก่อน** — สรุปว่าทำถึงไหน อะไรบล็อกอยู่
 > บทเรียนที่แลกมาแพง และกฎที่ต้องรักษา
@@ -50,10 +50,19 @@ npm run build      # → dist/
 | `npm run build` | build ลง `dist/` (~2 วิ) |
 | `npm run watch` | rebuild อัตโนมัติเมื่อแก้ไฟล์ใน `src/` |
 | `npm run typecheck` | `tsc --noEmit` (strict + `exactOptionalPropertyTypes`) |
-| `npm test` | vitest — 364 tests |
+| `npm test` | vitest — 414 tests |
 | `npm run check` | typecheck + test + build |
 
 ไอคอนอยู่ใน `public/icons/` แล้ว สร้างใหม่ได้ด้วย `node tools/make-icons.mjs`
+
+ทุกครั้งที่ build จะพิมพ์ขนาดของ script ที่ถูกฉีดเข้าหน้า Roblox พร้อม budget ของมัน
+และ **fail build ถ้าเกิน** — เพราะสามไฟล์นี้คือส่วนที่ผู้ใช้ต้องจ่ายโดยไม่ได้ขอ:
+
+```
+  dist/background.js         69.9 KB / 96 KB   ← parse ใหม่ทุกครั้งที่ MV3 ปลุก service worker
+  dist/content.js          288.8 KB / 320 KB   ← ฉีดทุกครั้งที่โหลดหน้า roblox.com
+  dist/main-world.js         1.0 KB / 4 KB     ← ฉีดทุกครั้งเหมือนกัน
+```
 
 ### ทำไม build ถึงแบ่งเป็นสองขา
 
@@ -259,6 +268,19 @@ Favourite      —      Not a favourite
 
 Smart Join **ไม่ยิง request เพิ่มหา Roblox เลยแม้แต่นัดเดียว** ใช้ข้อมูลที่โหลดมาแล้วล้วน ๆ
 
+### 🔒 ให้ Smart Join เลือก private server ก่อน (default ปิด)
+
+Settings → Smart Join → *Take a private server you can enter here first*
+
+เปิดแล้ว Smart Join จะถาม private server ที่เข้าได้ที่ place นี้ **1 request** ก่อน
+· เจอ → เข้าเลย **ไม่โหลด public สักหน้า** (จึงถูกลง ไม่ใช่แพงขึ้น) · ไม่เจอ → ให้คะแนน public
+ตามปกติ แล้วเขียนใน Explain Why ว่าทำไมถึงไม่ได้ใช้ private
+
+- **ข้ามเซิร์ฟที่เต็ม** เพราะ Roblox จะปฏิเสธอยู่ดี
+- เซิร์ฟที่ Roblox ไม่บอกจำนวนคน **จัดไว้ท้ายสุด ไม่ใช่ถือว่าว่าง** — กฎ `unknown ≠ safe` เดิม
+- เลือกด้วย population preference ที่ตั้งไว้อยู่แล้ว **ไม่คิด signal ใหม่ให้เซิร์ฟของคุณเอง**
+- ปิดอยู่เป็นค่าเริ่มต้น เพราะมันเปลี่ยนว่าคุณจะไปโผล่ที่ไหน — ไม่ใช่สิ่งที่ควรได้มาโดยไม่รู้ตัว
+
 ### Region — ทำจาก browser extension ไม่ได้
 
 เดิมตั้งใจให้ region เป็น signal ที่ 5 แต่**พอยิงจริงพบว่าทำไม่ได้**
@@ -360,13 +382,13 @@ src/
 │  ├─ smartJoin/     scoring (pure) · regionTable · regionProbe · SmartJoinService
 │  ├─ themes/        colors (คณิต + ด่านตรวจ hex) · presets · robloxSurfaces · buildThemeCss
 │  └─ playerBlacklist/
-├─ background/  service worker — เจ้าของ state ทั้งหมด
+├─ background/  service worker — เจ้าของ state ทั้งหมด (messageRouter = AppState · queryRouter = one-shot ความลับ)
 ├─ content/     content script (ISOLATED) — fetch proxy + injectors
 │  └─ panel/    in-page floating window (Shadow DOM) + tool registry
 ├─ main-world/  ~80 บรรทัด เรียก Roblox.GameLauncher เท่านั้น
 ├─ components/  UI ที่ popup/panel ใช้ร่วมกัน + theme tokens
-├─ hooks/       useAppState
-└─ popup · sidepanel · dashboard · options
+├─ hooks/       useAppState (state ทั้งก้อน) · sendQuery (ถามครั้งเดียว ตอบครั้งเดียว ไม่เก็บ)
+└─ popup · sidepanel · dashboard · options (controls.tsx = Section/Row/Toggle ที่คุม label + id)
 ```
 
 ### การไหลของข้อมูล
@@ -453,6 +475,97 @@ Settings → Backup → export ทั้ง settings + flags + blacklist เป�
 
 ไฟล์สร้างและดาวน์โหลดในเบราว์เซอร์ล้วน ไม่มีการอัปโหลดไปไหน
 
+## ⏱ Your visits — เล่นเซิร์ฟไหน เกมอะไร กี่นาที
+
+tool ⏱ **Time** → การ์ด **Your visits** · หนึ่งแถวต่อหนึ่งครั้งที่กด Join
+
+```
+┌ Steal An Egg                        ▶ 32m ┐
+│ d232...a7d1 · joined 14:32 · 32m ago      │
+│ Server had been running at least 12m      │
+│ when you joined.                          │
+└
+```
+
+| ช่อง | เชื่อได้แค่ไหน |
+|---|---|
+| เกมอะไร · เซิร์ฟไหน · เข้าตอนกี่โมง | **แน่นอน** — เรายิง launcher เอง |
+| กี่นาที | **upper bound** — นับจากตอนกด Join จนกว่าจะ join ที่อื่น / กด Stop · alt-tab ไปทำอย่างอื่นก็ยังนับ · ค้างเกิน 45 นาทีถูกตัด |
+| เซิร์ฟเปิดมานานแค่ไหน | **อย่างน้อยเท่านี้** — นับจากครั้งแรกที่ **extension นี้** เห็นเซิร์ฟนั้น ไม่ใช่เวลาที่เซิร์ฟเริ่มจริง |
+
+### 🛰 นับให้เองแม้จะ join จากหน้า Roblox (v0.11.0 · default ปิด)
+
+**Settings → Playtime → `Track sessions from my Roblox presence`**
+
+ของเดิมเห็นแค่ตอนกดปุ่ม Join ของ extension เอง → เข้าเกมจากหน้า Roblox = ไม่นับ
+· ออกจากเกม = session ไม่ปิดจนกว่าจะมีอะไรมาปิด
+
+เปิดแล้วมันจะถาม Roblox ว่า **บัญชีของคุณเอง**อยู่ที่ไหน:
+
+| | |
+|---|---|
+| ถี่แค่ไหน | **นาทีละครั้ง**ตอนอยู่ในเกม · **5 นาทีครั้ง**ตอนไม่ได้เล่น |
+| ได้อะไรเพิ่ม | session เริ่มเองไม่ว่าจะเข้าทางไหน · **ปิดตอนออกจริง** → เวลาที่ได้เป็นค่าที่วัดมา ±1 นาที ไม่ใช่ upper bound |
+| ถามใคร | บัญชีคุณคนเดียว — ไม่แตะคนอื่นเลย |
+| ปิดแล้วเป็นยังไง | ลบ alarm ทันที ไม่ยิงอะไรอีก |
+
+ต้องกด **Grant** ให้ `presence.roblox.com` ก่อน (optional permission ที่ไม่ได้ขอตอนติดตั้ง)
+· ทุกอย่างอยู่ในเครื่อง ไม่มีอะไรถูกอัปโหลด
+
+**กฎที่ทำให้ตัวเลขเชื่อได้:** ถ้า request ล้มเหลว / Roblox ตอบ state ที่เราไม่รู้จัก
+→ **ไม่ปิด session** เด็ดขาด เพราะ "ถามไม่สำเร็จ" กับ "เลิกเล่นแล้ว" คนละเรื่องกัน
+· แถวใน Your visits จะเขียนต่างกันด้วยว่าอันไหน *"Roblox confirmed when you left"*
+กับอันไหน *"upper bound"*
+
+> **ทำไมไม่มี uptime จริง** — `GET /servers/Public` ของ Roblox ไม่มี field เวลาเริ่ม
+> ไม่มี uptime ไม่มี version · ทุกตัวเลขอายุที่นี่จึงเป็น **พื้น** ที่เราวัดเอง
+> · ถ้าเพิ่งเห็นเซิร์ฟตอนกด Join พอดี จะเขียนว่า **"not known"** ไม่ใช่ `0m`
+> เพราะ 0 อ่านได้ว่า "เซิร์ฟเพิ่งเปิด" ซึ่งไม่มีใครวัดมา
+
+**ถามจนสุดทางแล้ว** — jobId ของ Roblox เป็น UUID และ UUID **version 1** มี timestamp
+ฝังอยู่ข้างใน ถ้าเป็นแบบนั้นเราจะได้เวลาเริ่มของทุกเซิร์ฟฟรี ๆ · เช็คจริงเมื่อ 28 ส.ค. 2026
+ด้วย **Settings → Developer mode → Server clock**: **198 ตัว เป็น v4 ทั้งหมด** = สุ่มล้วน
+ไม่มี timestamp ให้ถอด
+
+→ **uptime จริงเป็นไปไม่ได้** ไม่ใช่แค่จาก browser — field นี้ไม่มีอยู่ใน API ตั้งแต่แรก
+(ต่างจาก region ที่ข้อมูลมีอยู่แต่ browser เข้าไม่ถึง) · ตัวเลขอายุที่นี่จึงเป็น **พื้น** ตลอดไป
+
+การนับเวลาเริ่มเมื่อกด Join **ผ่านตัว extension** เท่านั้น — เข้าเกมจากปุ่มของ Roblox เอง
+เราไม่เห็น จึงไม่นับ
+
+---
+
+## 🔒 Private servers
+
+tool 🔒 ใน panel (และ tab ใน popup / side panel) — บอกว่าเกมนี้เปิด private server ไหม
+· list ที่คุณเป็นเจ้าของ แยก "เกมนี้" กับ "เกมอื่น" · วันหมดอายุ · auto-renew · ราคาต่ออายุ
+
+| ปุ่ม | ทำอะไร | ไม่ทำอะไร |
+|---|---|---|
+| 🔒 **Join** | เรียก `joinPrivateGame(placeId, accessCode)` ตัวเดียวกับที่หน้า Roblox เรียกเอง | ไม่เขียนอะไรกลับไปหา Roblox เลย · `accessCode` อยู่ใน service worker เท่านั้น ไม่เข้า state ไม่ลง storage |
+| 🔗 **Share link** (เฉพาะเซิร์ฟที่**คุณเป็นเจ้าของ**) | **อ่าน** ลิงก์ที่ Roblox สร้างไว้แล้ว (`joinCode`) แล้ว copy ให้ | **ไม่สร้างลิงก์ใหม่** — สร้าง = `PATCH` = ลิงก์เดิมที่คุณแจกเพื่อนไปแล้วตายทันที · ถ้ายังไม่มีลิงก์ มันจะบอกตรง ๆ แล้วให้ไปสร้างเองบนหน้า Roblox |
+
+> `accessCode` (ตัวที่ launcher ใช้) กับ `joinCode` (ตัวที่อยู่ในลิงก์เว็บ) เป็น **คนละค่า**
+> ลิงก์ที่ประกอบจาก `accessCode` จะหน้าตาถูกทุกอย่างแต่เข้าไม่ได้ — Share link จึงอ่าน
+> `joinCode` อย่างเดียว
+
+**สร้าง private server = ไม่ทำ** ใช้ Robux และทุก transaction ต้องเป็นการกดของคุณเอง
+· ปุ่มที่ให้คือ "Open on Roblox" ไปสร้างเองบนหน้าของเขา
+
+---
+
+## ♿ ใช้ด้วยคีย์บอร์ดล้วนได้
+
+- `Ctrl+K` / `Cmd+K` เปิด command palette ได้ทุกที่บน roblox.com
+- tool rail กับ tab ใน popup เดินด้วย **ลูกศร / Home / End** และ **Tab ข้ามทั้งแถวไปเลย**
+  (ไม่ต้องกด Tab ทีละอัน) · ปิด palette แล้ว focus กลับไปที่เดิม
+- ทุก select / checkbox ในหน้า Settings มี `<label>` จริงผูกอยู่ · คำอธิบายอยู่ใน
+  `aria-describedby` ไม่ใช่ในชื่อของ control (ไม่งั้นต้องฟังคำอธิบายทั้งย่อหน้าทุกครั้งที่ focus)
+- toast กับ error พูดออกมา (`aria-live` / `role="alert"`) — ผลของการกดปุ่มที่มองไม่เห็น
+  อย่าง "copy ลิงก์แล้ว" ก็พูดด้วย
+
+---
+
 ## 🎨 Themes
 
 Settings → Theme หรือ **tool 🎨 ใน panel** (หรือ `Ctrl+K` → *Change theme*)
@@ -503,11 +616,18 @@ background + text + accent ทั้งหมด palette จึงขัดก�
 > พอ ship แล้วถึงรู้ว่า Roblox ปฏิเสธ ต้องถอดทิ้งทั้งหมด · Phase 6 (private servers)
 > ตั้งอยู่บน endpoint ที่ยังไม่ verify อีก 5 ตัว → ลำดับที่ถูกคือ **probe ก่อน สร้างทีหลัง**
 
-## ก่อนจะไป Phase 6
+## เหลืออะไร (28 ส.ค. 2026 · v0.11.0)
 
-endpoint ที่ยังเป็น `docs-only` ใน [`02_ROBLOX_API_MAP.md`](02_ROBLOX_API_MAP.md)
-(private servers, presence, users, universe, **gamejoin**) **ต้องยิงจริงแล้วอัปเดตเอกสารก่อน**
+| งาน | ติดอะไร |
+|---|---|
+| **Phase 9 Trading** | endpoint ตอบ 200 แล้ว แต่บัญชีทดสอบ**ไม่มีเทรดสักอัน** → ยังไม่เห็น field ของ trade · ต้องรอมีเทรดจริงแล้วรัน probe ซ้ำ |
+| **Avatar equip / body scales** | เป็น **write** (`set-wearing-assets`) และ API probe เป็น read-only ล้วนโดยสัญญา → ต้องตกลงกันก่อนว่าจะ probe write แบบ no-op ไหม |
+| **Last online** | เพิ่มเข้า probe แล้ว (v0.9.0) รอผลรอบหน้า |
+
+**i18n ไม่ได้อยู่ในรายการนี้** — UI เป็นภาษาอังกฤษล้วนโดยตั้งใจ (อังกฤษ global กว่าการแปล
+เป็นภาษาใดภาษาหนึ่ง) · เอกสารยังเป็นไทย
+
+กฎที่ยังใช้เหมือนเดิม: endpoint ที่ยังเป็น `docs-only` / `planned` ใน
+[`02_ROBLOX_API_MAP.md`](02_ROBLOX_API_MAP.md) **ต้องยิงจริงแล้วอัปเดตเอกสารก่อน**
 ถึงจะเอาไปโชว์ใน UI ได้ — อย่าสัญญากับผู้ใช้ว่า feature ไหนทำได้จนกว่าจะตรวจ API จริง
-
-โดยเฉพาะ **region probe** ที่เพิ่งทำเสร็จ: logic + test ครบแล้ว แต่ยังไม่เคยเห็น response จริง
-จาก `join-game-instance` ควรเปิด Developer Mode แล้วลอง probe สัก 1 เซิร์ฟก่อนใช้งานจริงจัง
+(บทเรียนจาก region: สร้าง UI ครบชุดแล้วต้องถอดทิ้งทั้งหมด)

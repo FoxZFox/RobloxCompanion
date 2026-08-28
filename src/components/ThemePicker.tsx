@@ -43,10 +43,12 @@ export function ThemePicker({ state, busy, send, children }: Props): React.JSX.E
         </div>
       ) : null}
 
-      <div className="rc-swatches">
+      <div className="rc-swatches" role="group" aria-label="Theme">
         <button
           type="button"
           className={`rc-swatch${theme.preset === THEME_OFF ? ' rc-swatch--on' : ''}`}
+          /* The chosen palette is shown by a highlight, which says nothing out loud. */
+          aria-pressed={theme.preset === THEME_OFF}
           disabled={busy}
           onClick={() => choose(THEME_OFF)}
         >
@@ -64,6 +66,7 @@ export function ThemePicker({ state, busy, send, children }: Props): React.JSX.E
               key={preset.id}
               type="button"
               className={`rc-swatch${theme.preset === preset.id ? ' rc-swatch--on' : ''}`}
+              aria-pressed={theme.preset === preset.id}
               title={preset.description}
               disabled={busy}
               onClick={() => choose(preset.id)}
@@ -78,6 +81,7 @@ export function ThemePicker({ state, busy, send, children }: Props): React.JSX.E
         <button
           type="button"
           className={`rc-swatch${theme.preset === THEME_CUSTOM ? ' rc-swatch--on' : ''}`}
+          aria-pressed={theme.preset === THEME_CUSTOM}
           disabled={busy}
           onClick={() => choose(THEME_CUSTOM)}
         >

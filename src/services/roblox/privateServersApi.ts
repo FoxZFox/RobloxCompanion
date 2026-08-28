@@ -5,7 +5,12 @@ import {
   type RawJoinableServer,
   type RawPrivateServer,
 } from '../../features/privateServers/privateServers';
-import { myPrivateServersUrl, placePrivateServersUrl, privateServersEnabledUrl } from './endpoints';
+import {
+  myPrivateServersUrl,
+  placePrivateServersUrl,
+  privateServersEnabledUrl,
+  vipServerUrl,
+} from './endpoints';
 import type { RobloxHttpClient } from './RobloxHttpClient';
 
 /**
@@ -37,6 +42,25 @@ export class PrivateServersApi {
       // looking for a button Roblox never offered them.
       return null;
     }
+  }
+
+  /**
+   * The join code of a server the user owns, if Roblox has already minted one.
+   *
+   * Read-only, and the whole feature rests on that. `joinCode` is how Roblox's own share
+   * link identifies a private server, and the probe found it `null` on 28 Aug 2026 - not
+   * because the endpoint refuses us, but because that account had never asked Roblox for
+   * a link. Where one exists this reads it; where none does, the answer is null and the
+   * user is pointed at Roblox's own page. Minting one means PATCHing this same path,
+   * which regenerates the code and breaks whatever link they already shared, so it is not
+   * a call this extension makes on anyone's behalf.
+   */
+  async joinCode(privateServerId: number): Promise<string | null> {
+    const body = await this.http.getJson<{ joinCode?: string | null }>(
+      vipServerUrl(privateServerId),
+      { force: true },
+    );
+    return typeof body.joinCode === 'string' && body.joinCode.length > 0 ? body.joinCode : null;
   }
 
   /** Every private server on this account, across all experiences. */

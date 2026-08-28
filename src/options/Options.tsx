@@ -4,11 +4,13 @@ import { FEATURES, isImplemented } from '../config/features';
 import { useAppState } from '../hooks/useAppState';
 import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { UiRequest } from '../models/messages';
+import { Row, Section, Toggle } from './controls';
 import { SmartJoinSettings } from './SmartJoinSettings';
 import { FlagSettings } from './FlagSettings';
 import { DataSettings } from './DataSettings';
 import { ThemeSettings } from './ThemeSettings';
 import { ProfileSettings } from './ProfileSettings';
+import { PlaytimeSettings } from './PlaytimeSettings';
 import { OptionalAccess } from './OptionalAccess';
 import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
 
@@ -45,27 +47,32 @@ export function Options(): React.JSX.Element {
         </h1>
       </header>
 
-      <div className="rc-body">
+      {/* A landmark, so the settings can be jumped to without walking the header. */}
+      <main className="rc-body" aria-busy={busy}>
         <Section title="General">
           <Row
             label="Clicking the toolbar icon opens"
             hint="The in-page panel floats over Roblox itself and can be dragged anywhere; the side panel takes a fixed slice of the window; the popup closes as soon as you alt-tab. Chrome only lets the side panel be opened by the icon itself, so this setting controls the icon directly."
           >
-            <select
-              className="rc-select"
-              value={settings.surface}
-              disabled={busy}
-              onChange={(e) =>
-                dispatch({
-                  type: 'settings/set',
-                  patch: { surface: e.target.value as 'inpage' | 'panel' | 'popup' },
-                })
-              }
-            >
-              <option value="inpage">In-page panel (recommended)</option>
-              <option value="panel">Side Panel</option>
-              <option value="popup">Popup</option>
-            </select>
+            {(ids) => (
+              <select
+                id={ids.id}
+                aria-describedby={ids.describedBy}
+                className="rc-select"
+                value={settings.surface}
+                disabled={busy}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'settings/set',
+                    patch: { surface: e.target.value as 'inpage' | 'panel' | 'popup' },
+                  })
+                }
+              >
+                <option value="inpage">In-page panel (recommended)</option>
+                <option value="panel">Side Panel</option>
+                <option value="popup">Popup</option>
+              </select>
+            )}
           </Row>
 
           <Toggle
@@ -103,26 +110,31 @@ export function Options(): React.JSX.Element {
 
         <ThemeSettings state={state} busy={busy} send={dispatch} />
 
+        <PlaytimeSettings state={state} busy={busy} send={dispatch} />
+
         {settings.features.profiles ? <ProfileSettings /> : null}
 
         <FlagSettings state={state} busy={busy} send={dispatch} />
 
         <Section title="Server Browser">
           <Row label="Sort by players">
-            <select
-              className="rc-select"
-              value={settings.serverBrowser.sort}
-              disabled={busy}
-              onChange={(e) =>
-                dispatch({
-                  type: 'settings/set',
-                  patch: { serverBrowser: { sort: e.target.value as 'Asc' | 'Desc' } },
-                })
-              }
-            >
-              <option value="Asc">Lowest first</option>
-              <option value="Desc">Highest first</option>
-            </select>
+            {(ids) => (
+              <select
+                id={ids.id}
+                className="rc-select"
+                value={settings.serverBrowser.sort}
+                disabled={busy}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'settings/set',
+                    patch: { serverBrowser: { sort: e.target.value as 'Asc' | 'Desc' } },
+                  })
+                }
+              >
+                <option value="Asc">Lowest first</option>
+                <option value="Desc">Highest first</option>
+              </select>
+            )}
           </Row>
 
           <Toggle
@@ -146,41 +158,49 @@ export function Options(): React.JSX.Element {
           />
 
           <Row label="Maximum players" hint="0 turns this filter off.">
-            <input
-              type="number"
-              className="rc-input"
-              min={0}
-              value={settings.serverBrowser.maxPlayerCount}
-              disabled={busy}
-              onChange={(e) =>
-                dispatch({
-                  type: 'settings/set',
-                  patch: { serverBrowser: { maxPlayerCount: Number(e.target.value) || 0 } },
-                })
-              }
-            />
+            {(ids) => (
+              <input
+                id={ids.id}
+                aria-describedby={ids.describedBy}
+                type="number"
+                className="rc-input"
+                min={0}
+                value={settings.serverBrowser.maxPlayerCount}
+                disabled={busy}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'settings/set',
+                    patch: { serverBrowser: { maxPlayerCount: Number(e.target.value) || 0 } },
+                  })
+                }
+              />
+            )}
           </Row>
 
           <Row
             label="How many servers to load"
             hint="Under 'lowest first' Roblox returns the emptiest servers on page one, so Join Lowest and Smart Join already have what they need there. More pages take longer and mainly help when browsing."
           >
-            <select
-              className="rc-select"
-              value={settings.serverBrowser.scanPages}
-              disabled={busy}
-              onChange={(e) =>
-                dispatch({
-                  type: 'settings/set',
-                  patch: { serverBrowser: { scanPages: Number(e.target.value) } },
-                })
-              }
-            >
-              <option value={1}>100 — fastest</option>
-              <option value={2}>200 — balanced</option>
-              <option value={3}>300</option>
-              <option value={5}>500 — as deep as Roblox allows</option>
-            </select>
+            {(ids) => (
+              <select
+                id={ids.id}
+                aria-describedby={ids.describedBy}
+                className="rc-select"
+                value={settings.serverBrowser.scanPages}
+                disabled={busy}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'settings/set',
+                    patch: { serverBrowser: { scanPages: Number(e.target.value) } },
+                  })
+                }
+              >
+                <option value={1}>100 — fastest</option>
+                <option value={2}>200 — balanced</option>
+                <option value={3}>300</option>
+                <option value={5}>500 — as deep as Roblox allows</option>
+              </select>
+            )}
           </Row>
         </Section>
 
@@ -256,75 +276,7 @@ export function Options(): React.JSX.Element {
             onChange={() => undefined}
           />
         </Section>
-      </div>
+      </main>
     </div>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">{title}</div>
-      {children}
-    </section>
-  );
-}
-
-function Row({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <div className="rc-field">
-      <span className="rc-field__label">{label}</span>
-      {children}
-      {hint ? <span className="rc-header__sub">{hint}</span> : null}
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  disabled: boolean;
-  onChange: (value: boolean) => void;
-}): React.JSX.Element {
-  return (
-    <label className="rc-field" style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
-      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <span className="rc-field__label" style={{ fontSize: 12 }}>
-          {label}
-        </span>
-      </span>
-      {hint ? (
-        <span className="rc-header__sub" style={{ paddingLeft: 24 }}>
-          {hint}
-        </span>
-      ) : null}
-    </label>
   );
 }

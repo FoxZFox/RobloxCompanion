@@ -2,6 +2,8 @@
 
 ## สถานะปัจจุบัน
 
+อัปเดต **28 ส.ค. 2026 · v0.9.0**
+
 | Phase | ชื่อ | สถานะ |
 |---|---|---|
 | 0 | Research | ✅ เสร็จ — `01`–`05` + `PERMISSIONS.md` |
@@ -9,12 +11,17 @@
 | 2 | Server Browser | ✅ เสร็จ |
 | 3 | Smart Join | ✅ เสร็จ |
 | 4 | Reputation ขั้นสูง | ✅ เสร็จ |
-| 5 | Player Blacklist ขั้นสูง | ✅ local + presence (opt-in) |
-| 6 | Private Servers | ✅ enabled · list · join (สร้าง = ไม่ทำ §8) |
-| 7 | Experience features | ✅ playtime · live stats · quick search |
-| 8 | Profiles / Avatar / Themes | 🟡 Themes ✅ · Profiles ✅ · Avatar ⬜ |
-| 9 | Trading | ⬜ |
-| 10 | Polish | 🟡 Command Palette ✅ · a11y / i18n ⬜ |
+| 5 | Player Blacklist ขั้นสูง | ✅ เสร็จ — local + presence (opt-in, verified) |
+| 6 | Private Servers | ✅ เสร็จ — enabled · list · join · share link · smart preference (สร้าง = ไม่ทำ §8) |
+| 7 | Experience features | ✅ เสร็จ — playtime · live stats · quick search |
+| 8 | Profiles / Avatar / Themes | 🟡 Themes ✅ · Profiles ✅ · Last online ⏳ รอ probe · Avatar ⬜ รอ verify write |
+| 9 | Trading | ⬜ บล็อก — endpoint ตอบ 200 แต่บัญชีทดสอบไม่มีเทรดให้ดูรูปร่าง |
+| 10 | Polish | 🟡 Command Palette ✅ · a11y ✅ (ทุก surface) · size budget ✅ · **i18n = ไม่ทำ** (ดูล่าง) |
+
+**i18n — ตัดสินใจแล้วว่าไม่ทำ (28 ส.ค. 2026)** · UI เป็นภาษาอังกฤษทั้งหมดโดยตั้งใจ:
+ผู้ใช้เจ้าของโปรเจกต์เลือกเองว่าอังกฤษ **global กว่า** การแปลเป็นภาษาใดภาษาหนึ่ง
+· เอกสาร (`README`, `01`–`05`, `HANDOFF`) ยังเป็นไทยเหมือนเดิม · comment ในโค้ดยังเป็นอังกฤษ
+→ ไม่ต้องมี `_locales/` ไม่ต้องมี `chrome.i18n` และ **ห้ามเพิ่มกลับเข้ามาโดยไม่ถาม**
 
 ---
 
@@ -52,9 +59,13 @@ recent servers · server history · reputation flags · manual player blacklist
 | Skip flagged server | ✅ | 2 |
 | Manual player blacklist | ✅ | 2 |
 | Smart Join | ✅ | 3 |
-| Detect private server availability | ⬜ | 6 |
-| Create & Join FREE private server | ⬜ | 6 |
+| Detect private server availability | ✅ | 6 |
+| Join private server | ✅ | 6 |
+| Create private server | ⛔ **จงใจไม่ทำ** — ใช้ Robux (§8) | 6 |
 | Never auto-buy paid private server | ✅ (บังคับใน design) | 6 |
+
+> §54 ปิดครบแล้วทุกข้อ ยกเว้นข้อที่เราตัดสินใจว่าจะไม่ทำ · แถว "Create & Join FREE private
+> server" ของเดิมรวมสองเรื่องที่คนละคำตอบไว้ด้วยกัน จึงแยกออกเป็นสองแถว
 
 ---
 
@@ -93,54 +104,65 @@ scope ได้ทั้งแบบเฉพาะเกม (§21) และแ
 ลบ flag แล้ว **ถอดออกจากทุกเซิร์ฟที่ติดไว้ด้วย** (`purgeCustomFlag`) — ถ้าปล่อยทิ้งไว้
 เซิร์ฟจะมี id ล่องหนที่ยังมีผลกับ avoid rule โดยไม่มีอะไรใน UI อธิบายว่าทำไมถึงถูกข้าม
 
-## Phase 5 — Player Blacklist ขั้นสูง 🟡
+## Phase 5 — Player Blacklist ขั้นสูง ✅
 
-**เสร็จแล้ว:** Import / Export ทั้งชุด (settings + flags + blacklist + reports) เป็น JSON
+**Import / Export** ทั้งชุด (settings + flags + blacklist + reports) เป็น JSON
 พร้อม `schemaVersion` (§37) · **import เป็นการ merge ไม่ใช่ replace** — คนที่ restore backup เก่า
 หรือรับ flag ชุดของเพื่อนมา ต้องไม่เสีย report ที่มีอยู่แล้ว · ถ้าชนกันของในเครื่องชนะ
 
-**ยังค้าง:** presence check สำหรับ subset ที่ privacy อนุญาต — `presence.roblox.com` ยังเป็น
-`docs-only` **ต้อง verify ก่อน** (ดู Phase 6) · **ห้าม deanonymization** (§13)
+**Presence check ✅ (verified 28 ส.ค. 2026)** — `presence/users` คืน `gameId` จริง
+· 3 ด่านก่อนยิงได้: setting opt-in → optional permission → กดปุ่มเท่านั้น (ไม่มี polling)
+· `none-detected` ใช้ได้เฉพาะตอน Roblox บอกตำแหน่งครบทุกคน ถ้ามีใครถูกปิดบัง = `unknown`
+ทั้งชุด เพราะคนที่ถูกปิดบังคือคนที่เราอยากรู้ที่สุดพอดี · **ห้าม deanonymization** (§13)
+· รายละเอียดอยู่ที่ `HANDOFF.md` §13
 
-## Phase 6 — Private Servers 🟡 (verify แล้วบางส่วน · 28 ส.ค. 2026)
-
-**ทำแล้ว** — ผู้ใช้รัน probe ส่งผลมา ทั้งสอง endpoint ที่จำเป็นตอบจริง:
+## Phase 6 — Private Servers ✅ (verify ครบแล้ว · 28 ส.ค. 2026)
 
 | endpoint | ผล |
 |---|---|
 | `private-servers/enabled-in-universe/{universeId}` | ✅ `{privateServersEnabled: true}` |
-| `vip-servers/my-private-servers` | ✅ 25 server + รูปร่างครบ (ดู `02` §4) |
+| `vip-servers/my-private-servers` | ✅ 25 server + รูปร่างครบ (ดู `02` §4) แต่**ไม่มี** `accessCode` |
+| `GET vip-servers/{id}` | ✅ ตอบ แต่ `joinCode: null` |
+| `GET games/{placeId}/private-servers` | ✅ **มี `accessCode`** → join ได้โดยไม่ต้องเขียนอะไร |
 
-→ สร้าง tool 🔒 **Private** ใน panel + tab ใน popup/side panel: บอกว่าเกมนี้เปิด private server
-ไหม · list ที่เราเป็นเจ้าของ (แยก "เกมนี้" กับ "เกมอื่น") · วันหมดอายุ · auto-renew · ราคาต่ออายุ
+**ทำแล้วทั้งหมด:**
 
-**ยังไม่มีปุ่ม Join — ตั้งใจ** · `my-private-servers` **ไม่มี `accessCode` / `link`** มาด้วย
-และทางที่ Roblox document ไว้คือ **PATCH** ซึ่ง**เขียน**และ regenerate ลิงก์ได้
-→ ลิงก์ที่ผู้ใช้แจกเพื่อนไปแล้วจะใช้ไม่ได้ทันที · เพิ่ม probe `GET /v1/vip-servers/{id}` แทน
-ถ้า GET อ่าน code ได้ → join ได้โดยไม่ต้องเขียนอะไรเลย · ถ้าไม่ได้ → **ไม่มีปุ่ม join** (§8)
+- tool 🔒 **Private** ใน panel + tab ใน popup/side panel — เกมนี้เปิด private server ไหม ·
+  list ที่เราเป็นเจ้าของ (แยก "เกมนี้" กับ "เกมอื่น") · วันหมดอายุ · auto-renew · ราคาต่ออายุ
+- **ปุ่ม Join** ผ่าน `GameLauncher.joinPrivateGame(placeId, accessCode)` · code อยู่ใน SW
+  memory เท่านั้น ไม่เข้า `AppState` ไม่ลง storage (ดู `HANDOFF.md` §10)
+- **🔗 Share link (v0.9.0)** — **อ่าน** `joinCode` จาก `GET vip-servers/{id}` แล้วประกอบเป็น
+  `roblox.com/games/{placeId}?privateServerLinkCode={joinCode}` · ถ้า Roblox ยังไม่เคยสร้าง
+  ลิงก์ให้เซิร์ฟนั้น (`joinCode: null`) จะ**บอกตรง ๆ ว่าไม่มี** แล้วให้ไปสร้างเองที่หน้า Roblox
+  **ไม่ PATCH เด็ดขาด** เพราะ PATCH = regenerate = ลิงก์ที่แจกเพื่อนไปแล้วตายทันที
+  · ตอบผ่าน **one-shot query** ไม่ผ่าน `AppState` (ดู `03_ARCHITECTURE.md`)
+- **Smart private preference (§29) (v0.9.0)** — setting `preferOwnPrivateServer`
+  **default off** · เปิดแล้ว Smart Join จะหยิบ private server ที่เข้าได้ที่นี่ก่อน public
+  · เลือกด้วย population preference เดิม · **ข้ามเซิร์ฟที่เต็ม** · เซิร์ฟที่ Roblox ไม่บอก
+  จำนวนคน = จัดไว้ท้ายสุด (ไม่ใช่ถือว่าว่าง) · ไม่มี/เต็มหมด → falls back ไป public
+  พร้อมเขียนเหตุผลใน Explain Why
 
-ยังไม่ทำ: สร้าง private server (ใช้ Robux → §8) · Smart private preference (§29)
+**สิ่งที่จงใจไม่ทำ:** สร้าง private server (ใช้ Robux → §8) · `PATCH vip-servers/{id}`
+· `accessCode` ห้ามออกจาก SW (share link ใช้ `joinCode` คนละตัวกัน)
 
 ---
 
-### บันทึกไว้: ตอนที่ยังบล็อกอยู่เขียนว่าอย่างนี้
+### บันทึกไว้: ตอนที่ยังบล็อกอยู่เขียนว่าอย่างนี้ (เก็บไว้เป็นบทเรียน)
 
-**ยังไม่เขียนโค้ด และตั้งใจไม่เขียน** จนกว่าจะ verify API
+> **ยังไม่เขียนโค้ด และตั้งใจไม่เขียน** จนกว่าจะ verify API
+>
+> Phase 3 สอนบทเรียนราคาแพง: ผมสร้าง region ทั้ง feature บน endpoint ที่เป็น `docs-only`
+> พอ ship แล้วถึงรู้ว่า Roblox ตอบ `status: 12` ต้องถอดทิ้งทั้งหมด
+>
+> Phase 6 ตั้งอยู่บน endpoint ที่ยังไม่เคยยิงจริง **5 ตัว** → ความเสี่ยงเดิมเป๊ะ
+>
+> **ลำดับที่ถูกต้อง:** probe → อ่าน response จริง → อัปเดต `02_ROBLOX_API_MAP.md` → ค่อยสร้าง
 
-Phase 3 สอนบทเรียนราคาแพง: ผมสร้าง region ทั้ง feature บน endpoint ที่เป็น `docs-only`
-พอ ship แล้วถึงรู้ว่า Roblox ตอบ `status: 12` ต้องถอดทิ้งทั้งหมด
+**ลำดับนี้ใช้จริงแล้วและได้ผล** — probe 3 รอบกว่าจะเจอ `accessCode` และตอนหา share link
+`joinCode` ก็ตอบ `null` รอบแรกเหมือนกัน · endpoint แรกที่ตอบว่า "ไม่มี" ไม่ได้แปลว่าเรื่องจบ
+แต่ก็ไม่ได้แปลว่าให้เดาต่อ — แปลว่า**ยังมีคำถามอื่นที่ยังไม่ได้ถาม**
 
-Phase 6 ตั้งอยู่บน endpoint ที่ยังไม่เคยยิงจริง **5 ตัว** → ความเสี่ยงเดิมเป๊ะ
-
-**เครื่องมือที่ทำไว้แล้ว:** Settings → Developer Mode → **API probe**
-ยิง endpoint จริงแล้วรายงานว่าได้อะไรกลับมา พร้อมเตือนเมื่อเอกสารกับความจริงไม่ตรงกัน
-
-**ลำดับที่ถูกต้อง:** probe → อ่าน response จริง → อัปเดต `02_ROBLOX_API_MAP.md` → ค่อยสร้าง
-
-เมื่อ verify แล้ว: detect enabled → หาที่เราเป็นเจ้าของ → สร้าง (ถ้าฟรี **สำหรับผู้ใช้คนนี้**) → join ·
-Smart private preference (§29) · **ห้าม auto-buy** (§8)
-
-## Phase 7 — Experience 🟡
+## Phase 7 — Experience ✅
 
 **เสร็จแล้ว:**
 
@@ -162,7 +184,39 @@ Smart private preference (§29) · **ห้าม auto-buy** (§8)
   ไม่ใช่ทุกแถว ไม่งั้นเปลืองโควต้ากับแถวที่ไม่มีใครแตะ
 - นับซื่อสัตย์: "แสดง 24 จาก N ที่ Roblox คืนมา"
 
-**ยังค้าง:** invite links (ต้อง private server → phase 6)
+**invite links ✅ (v0.9.0)** — ย้ายไปอยู่กับ private servers ซึ่งเป็นที่ของมัน (ดู Phase 6)
+· public server ไม่มี invite link ถาวรอยู่แล้ว จึงไม่มีอะไรค้างในหัวข้อนี้
+
+**Visit log ✅ (v0.10.0)** — การ์ด **Your visits** ใน tool ⏱ : หนึ่งแถวต่อหนึ่งครั้งที่กด Join
+บอก **เกมอะไร · เซิร์ฟไหน · กี่นาที · เซิร์ฟเปิดมานานแค่ไหนตอนที่เข้า**
+
+- นาที = upper bound เหมือน playtime เดิม (นับจากตอนกด Join ไม่ใช่เวลาในเกม)
+- อายุเซิร์ฟ = **floor** จากครั้งแรกที่**เราเอง**เห็นเซิร์ฟนั้น · เพิ่งเห็นตอน join → เขียนว่า
+  **"not known"** ไม่ใช่ 0 (0 จะอ่านว่า "เซิร์ฟเพิ่งเปิด" ซึ่งไม่มีใครวัดมา)
+- ที่มาของครั้งแรกที่เห็น: report ที่ผู้ใช้เคยแตะ + map ใน memory ของ SW ที่จำ scan ไว้
+  (ไม่ลง storage — ดู `HANDOFF.md` §17)
+- ไม่มี flag ใหม่: อยู่ใต้ Playtime ที่มี flag อยู่แล้ว (บันทึกใน `PHASE_NOTES`)
+
+**Session tracking จาก presence ✅ (v0.11.0)** — setting `playtime.followPresence` **default ปิด**
+· เปิดแล้วถาม `presence/users` ของ**บัญชีตัวเอง** นาทีละครั้งตอนอยู่ในเกม / 5 นาทีตอนไม่ได้เล่น
+
+- แก้ข้อจำกัดที่ใหญ่ที่สุดของ playtime: join จากหน้า Roblox เองก็นับ · ออกจากเกมแล้ว **ปิดจริง**
+- `decideFollow()` pure + test 13 เคส · กฎหลัก: **ไม่มีคำตอบ ≠ ออกจากเกม** (lookup ล้มเหลว /
+  enum ที่ไม่รู้จัก → ไม่แตะ session)
+- `confirmedAt` เขียนลง storage ทุกครั้งที่ยืนยัน → cap 45 นาทีไม่ตัดเกมยาวอีกต่อไป
+  แต่ session ที่ไม่มีใครยืนยันยังถูก cap เหมือนเดิม
+- `endedBy` แยก "เห็นตอนจบจริง" ออกจาก "อนุมาน" แล้ว visit log เขียนคนละประโยค
+- §13 ไม่ถูกละเมิด: กฎห้าม poll ตำแหน่ง**คนอื่น** สิ่งที่ถามคือตัวผู้ใช้เอง
+- **บั๊ก MV3 ที่เจอ:** `chrome.alarms.onAlarm` ต้อง register ที่ top level ของ service worker
+  ไม่งั้น alarm ที่ปลุก worker เองจะไม่มีใครฟัง (ดู `HANDOFF.md` §18)
+
+**Server clock (dev) ✅ (v0.10.0) → ได้คำตอบแล้ว (v0.11.1)** — คำถามคือ uptime จริงเป็นไปได้ไหม:
+jobId เป็น UUID และ UUID v1 มี timestamp ฝังใน แต่ v4 ไม่มี → อ่าน version nibble จาก id
+ที่ถืออยู่แล้ว (ไม่ยิง request)
+
+**ผลจริง 28 ส.ค. 2026: `198 × v4` ทุกตัว** → **ปิดประตูถาวร** · uptime จริงไม่มีทางได้
+เพราะ field ไม่มีใน API และ id ไม่มี timestamp · อายุเซิร์ฟเป็น **floor จากการที่เราเห็นเอง**
+ตลอดไป และต้องเขียนว่า "อย่างน้อย" เสมอ · การ์ดเก็บไว้เผื่อ Roblox เปลี่ยนวิธี mint id
 
 ## Phase 8 — Profiles / Avatar / Themes 🟡
 
@@ -176,14 +230,31 @@ Smart private preference (§29) · **ห้าม auto-buy** (§8)
   แล้วรายงานใน panel ว่า "match 4 จาก 6 ส่วน" (กฎเดียวกับ honest labeling §55)
 - แตะ Roblox เฉพาะ **สี** เท่านั้น ห้ามขยับ/ซ่อน layout — มี test บังคับไว้
 
-**ยังไม่ได้ทำ:** mutual friends · last online · avatar sandbox · saved outfits · quick equip
-— ทั้งหมดอยู่บน endpoint ที่ยังเป็น `docs-only` (กฎข้อ 7 ด้านล่าง)
+**Mutual friends ✅** — verified 28 ส.ค. 2026 · เทียบด้วย id เพราะ `name` ว่าง → แสดงได้แค่
+**จำนวน** · list ที่ private ตอบ "ไม่ทราบ" ไม่ใช่ "ไม่มีเพื่อนร่วมกัน" (3 verdict แยกกัน มี test บังคับ)
+· `friends.roblox.com` เป็น optional permission (ดู `HANDOFF.md` §12)
 
-## Phase 9 — Trading
-trade panel · `ItemValueProvider` adapter (หลายเจ้า) · calculator · notifications ·
-protection features (**default OFF** §24)
+**Last online ⏳ รอ probe (v0.9.0 เพิ่ม probe แล้ว)** — `presence/last-online` อยู่ใน host
+เดียวกับ presence ที่ Grant ไปแล้ว จึงไม่ต้องขอ permission เพิ่ม แต่**คนละ endpoint คนละกฎ
+privacy** → เพิ่มเข้า API probe แล้ว (read-only, ยิงใส่บัญชีตัวเอง) · **ยังห้ามสร้าง UI**
+จนกว่าจะเห็น response จริงและอัปเดต `02` (กฎข้อ 7)
 
-## Phase 10 — Polish 🟡
+**Avatar ⬜ บล็อกที่ write** — อ่าน avatar ได้แล้ว (verified) แต่ feature จริงคือ **equip** =
+`POST avatar/set-wearing-assets` ซึ่งเป็น **write** และ probe เป็น read-only ล้วนโดยสัญญา
+→ ต้องตกลงกันก่อนว่าจะ probe write แบบ **no-op** (ใส่ชุดเดิมกลับเข้าไป) ไหม
+· ถ้าไม่เอา write เลย ยังทำได้ครึ่งเดียวโดยไม่ต้องรออะไร: **avatar sandbox (preview ผ่าน
+thumbnail)** + **saved outfits (เก็บ local)** โดยไม่มีปุ่ม equip
+
+## Phase 9 — Trading ⬜ (บล็อก — รอข้อมูล ไม่ใช่รอโค้ด)
+
+`trades/inbound` และ `trades/completed` **ตอบ 200 ทั้งคู่** envelope ถูกต้อง
+แต่บัญชีที่ทดสอบ**ไม่มีเทรดเลยสักอัน** → ยังไม่เห็น field ของ trade object
+→ ออกแบบตอนนี้ = เดา = ผิดกฎข้อ 7 · **ต้องรอจนมีเทรดจริงสัก 1 อัน แล้วรัน probe ซ้ำ**
+
+ขอบเขตที่รออยู่: trade panel · `ItemValueProvider` adapter (หลายเจ้า) · calculator ·
+notifications · protection features (**default OFF** §24) · account value
+
+## Phase 10 — Polish ✅ (ยกเว้น i18n ที่ตัดสินใจว่าไม่ทำ)
 
 **Command Palette (§40 §41) ✅** — `Ctrl+K` / `Cmd+K` ทุกที่บน roblox.com
 
@@ -204,11 +275,33 @@ protection features (**default OFF** §24)
   · `aria-modal` · **กิน Tab ไว้** ไม่งั้นหลุดไปหน้า Roblox แล้วเหลือ palette ที่คีย์บอร์ดสั่งไม่ได้
   · คืน focus ให้จุดเดิมตอนปิด (อ่านจาก `getRootNode()` เพราะอยู่ใน shadow root)
 - **tool rail = tablist** — ลูกศร/Home/End เลื่อนได้ วนรอบ · `tabIndex` -1 ทุกตัวยกเว้นตัวที่เลือก
-  · logic แยกเป็น `railNavigation.ts` (pure) มี test
+  · logic แยกเป็น `utils/rovingIndex.ts` (pure) มี test · ตัวเดียวกับที่ tab ใน popup ใช้
 - จุดแดงบน rail มี `.rc-sr-only` กำกับ เพราะสีกับตำแหน่งอย่างเดียวไม่พูดอะไรออกมา
 - toast อยู่ใน `aria-live="polite"` · error banner เป็น `role="alert"`
 
-**ยังค้าง:** a11y ของ popup / options · i18n · performance profiling
+**a11y — ครบทุก surface แล้ว (v0.9.0)**
+
+- **popup / side panel** — tab ของจริง: `role="tablist"` + `aria-controls` + roving
+  `tabIndex` (Tab ข้ามทั้งแถว ลูกศรเดินในแถว) · tabpanel มีชื่อจาก tab ที่เลือก · error เป็น
+  `role="alert"` · **toast region render ไว้ตลอดแม้ว่าง** เพราะ live region ต้องอยู่ในหน้า
+  ก่อนข้อความจะมา ไม่งั้นอันแรก (ที่บอกว่า join สำเร็จ) เงียบ
+- **options** — `<main>` + `<h2>` จริงทุก section · **ทุก select / input มี `<label htmlFor>`**
+  (ของเดิมเป็น `<span>` ลอย ๆ = screen reader อ่านว่า "combo box, blank") · hint ย้ายไป
+  `aria-describedby` แทนที่จะอยู่ใน label (ไม่งั้นชื่อของ toggle = ป้าย + ย่อหน้าอธิบายทั้งก้อน)
+  · ปุ่ม Grant / Revoke ตั้งชื่อด้วยชื่อ host เพราะมีหลายชุดในหน้าเดียว
+  · ผล probe มีสรุปหนึ่งบรรทัดเป็น `role="status"` + คำแทน icon สำหรับคนที่ไม่เห็น icon
+- **dashboard** — `<main>` + `<h2>` + `aria-labelledby` ทุก card
+- **ที่ใช้ร่วมกัน** — swatch ของธีมมี `aria-pressed` (ของเดิมบอกด้วยสีอย่างเดียว)
+- controls ที่ options ใช้รวมศูนย์ที่ `src/options/controls.tsx` — id เกิดที่เดียว
+  `htmlFor` กับ `aria-describedby` จึงลืมไม่ได้ที่ call site
+
+**performance — วัดแล้ว มี budget กันบวม (v0.9.0)** · `build.mjs` พิมพ์ขนาดของ 3 script
+ที่ผู้ใช้ต้องจ่ายโดยไม่ได้ขอ (content / main-world ฉีดทุกครั้งที่โหลดหน้า Roblox,
+background parse ใหม่ทุกครั้งที่ SW ตื่น) แล้ว **fail build ถ้าเกิน budget**
+· วัดที่ v0.8.0: content 286 KB · background 66 KB · main-world 1 KB
+· budget ตั้งไว้สูงกว่าที่วัดราว 10% → โตปกติเงียบ โตกระโดดดัง
+
+**i18n — ไม่ทำ** (ดูหัวข้อ "สถานะปัจจุบัน" ด้านบน)
 
 ---
 

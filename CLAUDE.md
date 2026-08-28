@@ -82,6 +82,11 @@ MAIN world (~80 lines)                               Roblox.GameLauncher.joinGam
   `features/*` → `services/*`. **Every** response is a whole freshly-built `AppState`, never a
   delta — that is what lets the popup, side panel and in-page panel be open simultaneously
   without drifting. Mutations also broadcast `state/changed` so other surfaces refetch.
+- `background/queryRouter.ts` is the **one exception**, and only for secrets. `AppState` is
+  copied into every surface and rebuilt on every message, so it is the worst possible carrier
+  for a private-server link. A `UiQuery` is asked once, answered once, never stored and never
+  broadcast; there is exactly one (`query/privateServerLink`) and the bar for a second is that
+  its answer must also be a secret — not that it would save a round trip.
 - `background/context.ts` (`AppContext`) is the DI container: every repository and service is
   constructed once there, plus the state that outlives a single message (scan cache, session
   visited job ids, last Smart Join plan). New service → wire it here.
@@ -177,6 +182,16 @@ give up quietly.
 6. **A new feature needs a flag in `config/features.ts`.** If it ships default-**on**, also add
    it to `FEATURES_INTRODUCED_AT` and bump `STORAGE_SCHEMA_VERSION`, or stored settings from
    before it existed will keep it invisible forever.
+7. **Do not add i18n.** English-only UI is the user's decision (English is more global than
+   picking one translation), not unfinished work: no `_locales/`, no `chrome.i18n`. Docs stay
+   Thai, code comments stay English. Ask before reintroducing it.
+8. **Settings controls come from `src/options/controls.tsx`.** `Section`/`Row`/`Toggle` own the
+   id and hand it to the control, so `htmlFor` and `aria-describedby` cannot be forgotten. A
+   caption in a bare `<span>` next to a `<select>` reads as "combo box, blank".
+9. **`build.mjs` enforces a size budget** on `content.js`, `main-world.js` and `background.js` —
+   the three the user pays for without asking (injected on every roblox.com page load; the
+   worker is re-parsed on every MV3 wake). Raising a budget is a deliberate decision with a
+   fresh measurement, never a way to get a build to pass.
 
 ## Chrome API limits that fail silently
 
@@ -186,6 +201,11 @@ give up quietly.
 - `chrome.sidePanel.open()` needs a user gesture, and gestures do not survive `sendMessage`
   ([crbug 355266358](https://issues.chromium.org/issues/355266358)). The reliable path is the
   toolbar icon, configured by `applySurfaceBehavior`.
+- **`chrome.alarms.onAlarm` must be registered at the top level of `serviceWorker.ts`**, not
+  inside a function that runs after `AppContext.create()`. MV3 wakes the worker for an alarm
+  and delivers the event only to listeners that exist once the script has evaluated; a
+  listener added a few awaits later misses the event that woke it, silently. `alarms.ts`
+  exports `handleAlarm` for that reason - it creates alarms, it does not listen for them.
 
 ## Fragile points — these break when Roblox changes
 

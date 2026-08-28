@@ -38,7 +38,7 @@
 | Permission | สำหรับ | phase | optional? |
 |---|---|---|---|
 | `notifications` | trade / private server ready (§43) | 9 | ✅ **optional** — ขอตอนผู้ใช้เปิด feature |
-| `https://presence.roblox.com/*` | last online, blacklist presence check | 5, 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
+| `https://presence.roblox.com/*` | blacklist presence check · **session tracking ของบัญชีตัวเอง (v0.11.0)** · last online | 5, 7, 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
 | `https://friends.roblox.com/*` | mutual friends | 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
 | `https://avatar.roblox.com/*` | avatar sandbox / equip | 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
 | `https://trades.roblox.com/*` | trading | 9 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
@@ -47,7 +47,13 @@
 **4 host ที่ประกาศแล้วยัง "ไม่ได้ขอ" จนกว่าผู้ใช้จะกด** — Settings → Developer mode →
 **Grant** (ปุ่มเรียก `chrome.permissions.request()` ตรงจาก click handler เพราะ gesture
 ไม่ข้าม `await`) · มีปุ่ม **Revoke** คู่กันเสมอ ซึ่งสำคัญเป็นพิเศษกับ `trades` ที่อ่านกล่องเทรด
-· ตอนนี้มีแค่ **API probe** ที่ใช้ทั้งสี่ตัว และ probe **อ่านบัญชีของผู้ใช้เองเท่านั้น**
+· **API probe** ใช้ทั้งสี่ตัว และ probe **อ่านบัญชีของผู้ใช้เองเท่านั้น**
+
+**`presence` เป็นตัวเดียวที่มี feature ยิงเองเป็นระยะ** — session tracking (v0.11.0) ถาม Roblox ว่า
+**บัญชีของผู้ใช้เอง**อยู่ที่ไหน นาทีละครั้งตอนอยู่ในเกม ห้านาทีครั้งตอนไม่ได้เล่น
+· **default ปิด** ต้องเปิดเองใน Settings → Playtime · ปิดเมื่อไหร่ alarm ถูกลบทันที
+· ยังไม่ละเมิด §13 (ห้าม poll ตำแหน่ง**คนอื่น**เป็นพื้นหลัง) เพราะสิ่งที่ถามคือตัวผู้ใช้เอง
+และผลไม่ออกจากเครื่องเลย
 
 > feature ที่แตะข้อมูลอ่อนไหว (presence, friends, trades) จะขอ host permission
 > **ตอนผู้ใช้เปิด feature นั้นจริง ๆ** ผ่าน `chrome.permissions.request()` ไม่ขอล่วงหน้าตอนติดตั้ง

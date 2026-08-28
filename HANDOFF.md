@@ -1,7 +1,7 @@
 # HANDOFF — อ่านไฟล์นี้ก่อนทำงานต่อ
 
-อัปเดต **28 ส.ค. 2026** · `npm run check` ผ่าน — typecheck สะอาด, **364 tests**, build ~1.9s
-· source ~18,100 บรรทัด · **schema v7** · **v0.8.0** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
+อัปเดต **28 ส.ค. 2026** · `npm run check` ผ่าน — typecheck สะอาด, **414 tests**, build ~2.0s
+· source ~20,300 บรรทัด · **schema v7** · **v0.11.1** · feature ที่ ship แล้วดูที่ `shipped` ใน `config/features.ts`
 
 ---
 
@@ -11,18 +11,35 @@
 |---|---|---|
 | 0 Research | ✅ | `01`–`05` + `PERMISSIONS.md` |
 | 1 Foundation | ✅ | transport · CSRF · scheduler · storage · content injection |
-| 2 Server Browser | ✅ | §54 Definition of Done ครบ ยกเว้น private servers |
+| 2 Server Browser | ✅ | §54 Definition of Done **ปิดครบแล้ว** (ที่เหลือคือข้อที่จงใจไม่ทำ) |
 | 3 Smart Join | ✅ | 4 signal + Explain Why · **region ตัดออก** (ดู §3) |
 | 4 Custom flags + notes | ✅ | §21 §22 |
 | 5 Import / Export + Presence | ✅ | presence ทำแล้ว (ดู §13) · opt-in + optional permission |
-| 6 Private Servers | ✅ | enabled · list · **join ได้แล้ว** (ดู §10) · สร้าง = ไม่ทำ (§8) |
-| 7 Playtime + live stats | ✅ | quick search ทำแล้ว (ดู §11) |
-| 8 Profiles / Avatar / Themes | 🟡 | Themes ✅ (§9) · **Profiles ✅** (§12) · Avatar ⬜ (write ยัง verify ไม่ได้) |
-| 9 Trading | ⬜ | รอ verify |
-| 10 Polish | 🟡 | Command Palette ✅ · a11y ของ panel/palette ✅ · i18n ⬜ |
+| 6 Private Servers | ✅ | enabled · list · join (§10) · **share link + smart preference (§14)** · สร้าง = ไม่ทำ (§8) |
+| 7 Playtime + live stats | ✅ | quick search (§11) · visit log ต่อเซิร์ฟ (§17) · **session tracking จาก presence (§18)** |
+| 8 Profiles / Avatar / Themes | 🟡 | Themes ✅ (§9) · Profiles ✅ (§12) · **Last online ⏳ รอ probe** · Avatar ⬜ (write ยัง verify ไม่ได้) |
+| 9 Trading | ⬜ | บล็อก — endpoint ตอบ 200 แต่บัญชีทดสอบไม่มีเทรดให้ดูรูปร่าง |
+| 10 Polish | ✅ | Command Palette ✅ · **a11y ครบทุก surface (§15)** · **size budget (§16)** · i18n = **ไม่ทำ** |
+
+**i18n — ปิดเรื่องแล้ว (28 ส.ค. 2026)** ผู้ใช้ตัดสินใจเองว่า **UI ภาษาอังกฤษ global กว่า**
+การแปลเป็นภาษาใดภาษาหนึ่ง → ไม่มี `_locales/` ไม่มี `chrome.i18n` และ **ห้ามเพิ่มกลับโดยไม่ถาม**
+· เอกสารยังเป็นไทย · comment ในโค้ดยังเป็นอังกฤษ (เหมือนเดิม)
 
 **UI ปัจจุบัน** — surface หลักคือ **in-page floating panel** (Shadow DOM, ลากวางได้, จำตำแหน่ง)
 มี tool rail ซ้าย + `Ctrl+K` command palette · popup / side panel ยังอยู่ครบสำหรับใช้นอก roblox.com
+
+---
+
+## 1b. เหลืออะไรจริง ๆ (อ่านแค่ตารางนี้ก็พอ)
+
+| งาน | ติดอะไร | ปลดล็อกยังไง |
+|---|---|---|
+| **Phase 9 Trading** ทั้ง phase | บัญชีทดสอบไม่มีเทรดสักอัน → ไม่เห็น field | รอมีเทรดจริง 1 อัน แล้วรัน probe ซ้ำ |
+| **Avatar (equip / body scales)** | เป็น **write** (`set-wearing-assets`) · probe เป็น read-only ล้วน | ต้องตกลงกันก่อนว่าจะ probe write แบบ **no-op** ไหม |
+| **Last online** | endpoint ยัง `planned` | **เพิ่มเข้า probe แล้ว (v0.9.0)** → รันรอบหน้าแล้วดูผล |
+| *(ทำได้เลยโดยไม่ต้องรอ)* Avatar sandbox + saved outfits แบบไม่มีปุ่ม equip | — | อ่าน avatar + thumbnail = verified แล้ว |
+
+**ทุกอย่างอื่นที่ทำได้โดยไม่ต้องรอใคร ปิดหมดแล้วใน v0.9.0** (§14 §15 §16)
 
 ---
 
@@ -33,7 +50,7 @@
 > Settings → เปิด **Developer mode** → **Grant** (optional access) → **Run probe**
 > (ต้องอยู่บนหน้าเกม Roblox)
 
-probe ยิง **15 endpoint** จริง (read อย่างเดียว ไม่สร้าง ไม่ซื้อ ไม่ join ไม่รับ/ปฏิเสธเทรด)
+probe ยิง **16 endpoint** จริง (read อย่างเดียว ไม่สร้าง ไม่ซื้อ ไม่ join ไม่รับ/ปฏิเสธเทรด)
 แล้วเตือนเมื่อ `02_ROBLOX_API_MAP.md` ไม่ตรงกับความจริง · **รอบเดียวปลดล็อกได้ 4 phase:**
 
 | probe | ปลดล็อก |
@@ -75,6 +92,11 @@ probe ยิง **15 endpoint** จริง (read อย่างเดีย�
 **ที่ยังค้างจริง ๆ ตอนนี้เหลือ Phase 9 อย่างเดียว** และไม่ใช่เพราะ endpoint ใช้ไม่ได้ —
 มันตอบ 200 ทั้ง inbound และ completed แต่บัญชีที่ทดสอบไม่มีเทรดสักอัน → **รอจนกว่าจะมี
 เทรดจริง** แล้วรัน probe อีกครั้งเพื่อดู field ของ trade ก่อนออกแบบ
+
+**probe รอบหน้ามีของใหม่ 1 ตัว (v0.9.0):** `presence/last-online` — เป็นตัวสุดท้ายที่กั้น
+"Last online" ของ Phase 8 อยู่ · host เดียวกับ presence ที่ Grant ไปแล้ว จึงไม่ต้องขอ
+permission เพิ่ม แต่**คนละ endpoint คนละกฎ privacy** → การที่ `presence/users` ตอบ
+ไม่ได้แปลว่าตัวนี้จะตอบ
 
 ---
 
@@ -137,7 +159,7 @@ panel เลยมุดใต้ layer ของ Roblox · ต้องตั�
 | ใช้ ping หาเซิร์ฟใกล้ตัว | ⚠️ ไม่ได้ · Roblox จับคู่คนเข้าเซิร์ฟใกล้บ้านอยู่แล้ว → เซิร์ฟดีทุกทวีป ping ต่ำหมด |
 | region ของเซิร์ฟ | 🔵 ต้องมี backend · `status: 12` (ดู §3) |
 | รายชื่อผู้เล่นใน public server | ⚠️ `playerTokens` **มีมาจริง** (แก้ 28 ส.ค. 2026) แต่ต่อกับตัวคนได้ทางเดียวคือ fingerprint thumbnail ซึ่ง §13 ห้าม → blacklist ตอบ `unknown` เพราะ**นโยบาย** ไม่ใช่เพราะทำไม่ได้ |
-| server uptime / created / version | ⚠️ ไม่มี · ใช้ `firstSeenAt` ของเราเองเป็น proxy |
+| server uptime / created / version | ⚠️ **ไม่มี และปิดประตูแล้ว** · ไม่อยู่ใน response · jobId เป็น UUID **v4** สุ่มล้วน (ยืนยัน 198 ตัว 28 ส.ค. 2026) จึงไม่มี timestamp สำรอง → เหลือทางเดียวคือ `firstSeenAt` ของเราเองเป็น **floor** (§17) |
 | server list ครบทุกตัว | ⚠️ Roblox cap ที่ ~150–500 แล้วคืน cursor `null` (staff บอกว่าตั้งใจ) |
 | เช็ค JobId เดี่ยว ๆ | ⚠️ ไม่มี · ต้อง scan แล้ว match เอง |
 | เวลาเล่นในเกมจริง | ⚠️ ไม่มี · นับจากตอนกด Join = **upper bound** เท่านั้น |
@@ -156,6 +178,12 @@ panel เลยมุดใต้ layer ของ Roblox · ต้องตั�
 7. **endpoint `docs-only` ห้ามโชว์ใน UI จนกว่าจะ verify** (§53) — กฎที่ผมเคยพลาดเอง
 8. feature ใหม่ต้องมี flag ใน `config/features.ts` (§25)
 9. UI **ห้ามเรียก `chrome.storage` ตรง ๆ** ต้องผ่าน Repository (§36)
+10. **ทุก response ของ `UiRequest` คือ `AppState` ทั้งก้อน** · ข้อยกเว้นเดียวคือ `UiQuery`
+    ซึ่งมีไว้สำหรับ **ความลับ** เท่านั้น (ดู §14) — อย่าเพิ่ม query เพราะอยากประหยัด round trip
+11. **ห้ามใส่ i18n / `_locales` / `chrome.i18n` กลับเข้ามาโดยไม่ถาม** — UI อังกฤษล้วนเป็น
+    การตัดสินใจของผู้ใช้ ไม่ใช่งานที่ยังทำไม่เสร็จ
+12. **`build.mjs` มี size budget** ของ 3 script ที่ถูกฉีดเข้าหน้า Roblox (ดู §16) —
+    ขึ้น budget ได้ แต่ต้องตั้งใจขึ้นพร้อมวัดใหม่ ไม่ใช่ขึ้นให้ build ผ่าน
 
 ---
 
@@ -180,7 +208,7 @@ panel เลยมุดใต้ layer ของ Roblox · ต้องตั�
 ## 7. คำสั่งที่ใช้บ่อย
 
 ```bash
-npm run check     # typecheck + 364 tests + build   ← รันก่อน commit เสมอ
+npm run check     # typecheck + 414 tests + build   ← รันก่อน commit เสมอ
 npm run build     # → dist/
 npm run watch     # rebuild อัตโนมัติ
 ```
@@ -409,3 +437,187 @@ ServerRow ขึ้นแบนเนอร์เตือน**เฉพาะ�
 · **ไม่มีป้าย "ปลอดภัย" ตรงข้าม** เพราะการไม่มีป้ายไม่ได้แปลว่าเช็คแล้วไม่เจอ
 
 **ไม่เก็บลง storage เลย** — ตำแหน่งของคนอื่นอยู่ใน SW memory ชั่วคราวเท่านั้น
+
+---
+
+## 14. Private servers รอบสอง — share link + smart preference (v0.9.0)
+
+### 🔗 Share link — `joinCode` **ไม่ใช่** `accessCode`
+
+สองค่านี้ฟังดูเหมือนกันแต่คนละตัวคนละที่ใช้ และตรงนี้เกือบพลาด:
+
+| | มาจาก | ใช้กับ |
+|---|---|---|
+| `accessCode` | `GET games/{placeId}/private-servers` | `joinPrivateGame()` — launcher เท่านั้น |
+| `joinCode` | `GET vip-servers/{id}` | ลิงก์เว็บ `?privateServerLinkCode=` |
+
+→ ลิงก์ที่ประกอบจาก `accessCode` จะ **หน้าตาถูกทุกอย่างแต่เข้าไม่ได้** · ปุ่ม Share link (โผล่เฉพาะ
+เซิร์ฟที่ผู้ใช้**เป็นเจ้าของ** — ของเพื่อนที่แชร์มาให้ ไม่ใช่ของเราที่จะเอาไปแจกต่อ) จึง
+**อ่าน `joinCode` อย่างเดียว**: มี = copy ลิงก์ให้ · ไม่มี (`null`) = บอกว่า Roblox ยังไม่เคย
+สร้างลิงก์ให้เซิร์ฟนี้ แล้วให้ไปสร้างเองบนหน้า Roblox
+
+**ทำไมไม่สร้างให้** — สร้าง = `PATCH vip-servers/{id}` = **regenerate** ลิงก์เดิม
+→ ลิงก์ที่ผู้ใช้แจกเพื่อนไปแล้วตายทันทีโดยไม่มีใครรู้ตัว (§8)
+
+### one-shot query — ข้อยกเว้นเดียวของ "ทุก response คือ AppState ทั้งก้อน"
+
+ลิงก์ = ความลับ · `AppState` ถูก copy ไปทุก surface และ rebuild ทุก message → เป็นที่เก็บ
+ความลับที่แย่ที่สุดเท่าที่จะหาได้ จึงเพิ่ม channel ที่สองที่แคบมาก:
+
+- `models/messages.ts` → `UiQuery` + `UiQueryResults` (ตอนนี้มี **type เดียว**)
+- `background/queryRouter.ts` → ตอบเอง ไม่ broadcast `state/changed` (มันไม่เปลี่ยนอะไร)
+- `hooks/sendQuery.ts` → ไม่ใช่ hook ตั้งใจ เพื่อให้ panel (content script) ใช้ได้ด้วย
+- UI เอาไปเข้า clipboard ตรง ๆ **ไม่เข้า React state ไม่ขึ้นจอ**
+
+**เกณฑ์ของการเพิ่ม query ตัวที่สอง: มันต้องเป็นความลับ** ถ้าไม่ใช่ ให้ไปอยู่ใน `AppState`
+ตามเดิม ไม่งั้นจะเสีย guarantee ที่ว่า "สอง surface เห็นไม่ตรงกันไม่ได้" ไปฟรี ๆ
+
+### ⚡ Smart private preference (§29)
+
+setting `smartJoin.preferOwnPrivateServer` — **default off** เพราะมันเปลี่ยนว่าผู้ใช้จะไปโผล่ที่ไหน
+
+- เปิดแล้ว Smart Join ถาม private list **1 request** → เจอ = เข้าเลย **ไม่ scan public
+  สักหน้าเดียว** (จึงถูกลงไม่ใช่แพงขึ้น) → ไม่เจอ = ตกไป public แบบเดิม
+- `choosePrivateServer()` เป็น pure + มี test 8 เคส: **ข้ามเซิร์ฟที่เต็ม** (Roblox จะปฏิเสธ
+  อยู่ดี) · เซิร์ฟที่ Roblox ไม่บอก `playing` **จัดท้ายสุด ไม่ใช่ถือว่าว่าง** (กฎ `unknown ≠ safe`
+  ในรูปแบบใหม่) · เรียงตาม population preference เดิมของผู้ใช้เท่านั้น ไม่คิด signal ใหม่ให้
+- Explain Why แสดงว่าเป็น private pick **ไม่มีคะแนน ไม่มี coverage** เพราะไม่ได้ให้คะแนนอะไร
+  และไม่ได้โหลด public สักตัว — เขียน "Best of 0 servers" ตรงนั้นจะเป็นการโกหกที่ดูเป็นตัวเลข
+- ถ้าเปิดไว้แล้วไม่ได้ใช้ (ไม่มี / เต็มหมด / ถามไม่สำเร็จ) → เขียนเหตุผลหนึ่งบรรทัดใน
+  Explain Why เสมอ ไม่งั้น setting ที่เปิดอยู่จะดูเหมือนไม่ทำงาน
+
+**decision:** private join **ไม่บันทึก history / playtime** เหมือน public join เพราะเราไม่รู้
+`jobId` ของมัน — บันทึกด้วย jobId ว่างจะทำให้ประวัติเสีย ดีกว่าคือไม่บันทึกแล้วรู้ว่าทำไม
+
+---
+
+## 15. a11y — ปิดครบทุก surface แล้ว (v0.9.0)
+
+panel กับ palette ทำไปแล้วใน v0.3.0 · รอบนี้คือ **popup / side panel / options / dashboard**
+
+| ที่ | เดิม | แก้เป็น |
+|---|---|---|
+| popup / side panel — tab | `role="tab"` ลอย ๆ ไม่มี `aria-controls` ไม่มี roving tabIndex | tablist เต็มรูปแบบ · Tab ข้ามทั้งแถว ลูกศร/Home/End เดินในแถว (ใช้ `utils/rovingIndex.ts` ตัวเดียวกับ rail — ย้ายออกจาก `content/panel/` เพราะ page bundle ไม่ควร import จากโค้ดฝั่ง content script) · tabpanel มีชื่อจาก tab ที่เลือก |
+| popup — error | `<div class="rc-banner">` เฉย ๆ | `role="alert"` |
+| popup — toast | container render เฉพาะตอนมี toast | **render ไว้ตลอดแม้ว่าง** + `aria-live="polite"` · live region ต้องอยู่ในหน้าก่อนข้อความจะมา ไม่งั้นอันแรกเงียบ · CSS `:empty { padding: 0 }` กันช่องว่าง (**ห้ามใช้ `display:none`** มันจะหลุดจาก accessibility tree) |
+| options — ทุก select / input | `<span class="rc-field__label">` ลอย ๆ | `<label htmlFor>` จริง · ของเดิม screen reader อ่านว่า "combo box, blank" |
+| options — hint | อยู่ **ใน** `<label>` | `aria-describedby` · ไม่งั้นชื่อของ toggle = ป้าย + ย่อหน้าอธิบายทั้งก้อน อ่านทุกครั้งที่ focus |
+| options / dashboard — section | `<div class="rc-card__label">` | `<h2>` จริง + `aria-labelledby` + `<main>` landmark |
+| options — Grant / Revoke | ปุ่มชื่อซ้ำกัน 4 คู่ในหน้าเดียว | `aria-label` มีชื่อ host + สถานะเป็น `role="status"` |
+| options — ผล probe | icon อย่างเดียว | สรุป 1 บรรทัดเป็น `role="status"` + คำแทน icon ใน `.rc-sr-only` |
+| ThemePicker (ใช้ร่วมกัน) | บอกว่าเลือกอันไหนด้วย**สี**อย่างเดียว | `aria-pressed` |
+
+**ของใหม่:** `src/options/controls.tsx` — `Section` / `Row` / `Toggle` ที่ **เจ้าของ id คือ
+ตัว control เอง** แล้วส่ง id ให้ลูกผ่าน render prop → `htmlFor` กับ `aria-describedby`
+ลืมไม่ได้ที่ call site แม้จะเพิ่ม setting ใหม่ทีหลัง
+
+---
+
+## 16. Performance — วัด ไม่เดา (v0.9.0)
+
+`build.mjs` พิมพ์ขนาดของ 3 script ที่**ผู้ใช้ต้องจ่ายโดยไม่ได้ขอ** ทุกครั้งที่ build
+แล้ว **fail build ถ้าเกิน budget**:
+
+```
+  dist/background.js         69.9 KB / 96 KB
+  dist/content.js          288.8 KB / 320 KB
+  dist/main-world.js         1.0 KB / 4 KB
+```
+
+- `content.js` + `main-world.js` ถูกฉีด **ทุกครั้งที่โหลดหน้า roblox.com**
+- `background.js` ถูก parse ใหม่**ทุกครั้งที่ MV3 ปลุก service worker** ซึ่งบ่อยมาก
+- หน้า extension เอง (popup / options / dashboard) **ไม่นับ** เพราะผู้ใช้ตั้งใจเปิดเอง
+
+budget ตั้งไว้สูงกว่าที่วัดราว 10% → โตตามปกติเงียบ, โตกระโดด (เช่นมีคนลาก library เข้า
+content script) ดังทันที · **ขึ้น budget ได้ แต่ต้องตั้งใจขึ้นพร้อมวัดใหม่** ไม่ใช่ขึ้นให้ build ผ่าน
+
+ตัวเลขใน `SIZE_BUDGET_KB` เป็น "measured" แบบเดียวกับใน `config/constants.ts` —
+การแก้มันคือการอ้างอิงถึงความจริงใหม่ ไม่ใช่เรื่องรสนิยม
+
+---
+
+## 17. Visit log — "เล่นเซิร์ฟไหน เกมอะไร กี่นาที" (v0.10.0)
+
+tool ⏱ **Time** → การ์ด **Your visits** · หนึ่งแถว = หนึ่งครั้งที่กด Join
+
+| แสดงอะไร | มั่นใจแค่ไหน |
+|---|---|
+| เกมอะไร · เซิร์ฟไหน (jobId) · กดเข้าตอนกี่โมง | **แน่นอน** — เรายิง launcher เอง |
+| เล่นมากี่นาที | **upper bound** — นับจากตอนกด Join ถึงตอน join ที่อื่น/กด Stop · alt-tab ไปทำอย่างอื่นก็ยังนับ (คำเดิมของ playtime §7) · session ค้างถูก cap ที่ 45 นาที |
+| เซิร์ฟเปิดมานานแค่ไหนตอนที่เข้า | **floor เท่านั้น** — นับจาก**ครั้งแรกที่เราเห็นเซิร์ฟนั้นเอง** ไม่ใช่เวลาที่เซิร์ฟเริ่มจริง · ถ้าเพิ่งเห็นตอน join = **"not known"** ไม่ใช่ 0 |
+
+**ที่มาของ "ครั้งแรกที่เราเห็น" มี 2 ทาง** (อ่านตอน join ก่อน `markJoined` จะประทับเวลาใหม่ทับ):
+
+1. `report.firstSeenAt` — เซิร์ฟที่ผู้ใช้เคยกด flag / favourite / โน้ตไว้
+2. `context.firstSightingOf()` — **map ใน memory ของ SW** ที่จำว่า scan รอบไหนเห็น jobId ไหนครั้งแรก
+   · ไม่ลง storage เด็ดขาด: `touchSeen` จงใจไม่บันทึกเซิร์ฟที่ผู้ใช้ไม่ได้แตะ (ไม่งั้น 500 เซิร์ฟ × ทุกเกม
+   จะลง storage หมด) แต่ "เปิด panel ดูอยู่ 10 นาทีแล้วค่อยเข้า" เป็นข้อมูลที่มีค่าและฟรี
+   · ใช้ `outcome.scannedAt` ไม่ใช่ `Date.now()` — เห็นตอน fetch ไม่ใช่ตอน paginate จบ
+   · cap 5000 entry แล้วล้างทั้งก้อน (เป็นของอำนวยความสะดวก ไม่ใช่ของที่ต้องแม่น)
+
+`features/playtime/sessionLog.ts` เป็น pure ทั้งไฟล์ · test 11 เคส · เคสที่สำคัญที่สุดคือ
+**"เพิ่งเห็นตอน join → null ไม่ใช่ 0"** เพราะ 0 จะอ่านว่า "เซิร์ฟเพิ่งเปิด" ซึ่งไม่มีใครวัดมา
+
+### ทำไมไม่มี "uptime" จริง ๆ — และคำถามที่ยังไม่เคยถาม
+
+`GET /servers/Public` ไม่มี field เวลาเริ่มเลย ไม่มี uptime ไม่มี created ไม่มี version
+· แต่ **jobId คือ UUID** และ UUID **version 1** มี timestamp 60 บิตฝังอยู่ข้างใน
+ถ้า Roblox mint แบบนั้น = ได้เวลาเริ่มจริงของทุกเซิร์ฟฟรี ๆ โดยไม่ต้องยิงอะไรเพิ่มเลย
+
+→ ทำ **Settings → Developer mode → Server clock** ขึ้นมาตอบคำถามนี้: อ่าน version nibble
+ของ jobId ที่โหลดมาแล้ว (ไม่ยิง request) แล้วบอกว่า v1 (มี timestamp) หรือ v4 (สุ่มล้วน)
+· `features/devtools/jobIdClock.ts` pure + test 9 เคส (รวมเคส v1 ที่ decode ออกมาเป็นปี 1583
+ซึ่งต้องตอบว่า **ไม่น่าเชื่อถือ** ไม่ใช่รับมาใช้)
+
+**ผลจริง (ผู้ใช้รัน 28 ส.ค. 2026): `198 × v4` — ทุกตัวสุ่มล้วน ไม่มี timestamp**
+
+→ **ปิดประตูถาวร** · uptime จริงเอามาจาก browser ไม่ได้ และ backend ก็ช่วยไม่ได้ด้วยซ้ำ
+เพราะ field นี้ไม่มีอยู่ใน API ตั้งแต่แรก (ต่างจาก region ที่ข้อมูลมีอยู่แต่ browser เข้าไม่ถึง)
+→ อายุเซิร์ฟมีทางเดียวคือ **floor จากการที่เราเห็นเอง** และต้องเขียนว่า "อย่างน้อย" เสมอ
+→ การ์ด Server clock **เก็บไว้** (dev only) เพราะเป็นข้อเท็จจริงว่า Roblox mint id ยังไง *วันนี้*
+กดเช็คซ้ำได้ถ้าสงสัยว่าเปลี่ยน · `02` §1 บันทึกผลไว้แล้ว
+
+---
+
+## 18. Session tracking จาก presence ของตัวเอง (v0.11.0)
+
+**ปัญหาที่แก้:** ของเดิมเห็นแค่ "ตอนกดปุ่ม Join ของเรา" → join จากหน้า Roblox เอง = ไม่นับเลย
+· ออกจากเกม = session ไม่ปิดจนกว่าจะมีอะไรมาปิด (นับเกินยาว)
+
+**Settings → Playtime → `Track sessions from my Roblox presence`** (default **ปิด**)
+
+| | |
+|---|---|
+| ถามอะไร | `presence/users` ของ **บัญชีตัวเองคนเดียว** (verified 28 ส.ค. 2026 — `gameId` มาครบสำหรับตัวเอง) |
+| ถามบ่อยแค่ไหน | **1 นาที** ตอนอยู่ในเกม · **5 นาที** ตอนไม่ได้เล่น (`chrome.alarms` สร้างใหม่ทุกครั้งตามผล) |
+| ได้อะไร | session เริ่มเองไม่ว่าจะเข้าเกมทางไหน · **ปิดตอนออกจริง** → เวลาเลิกเป็น "วัดมา" ไม่ใช่ "เดา" |
+| ไม่ทำอะไร | ไม่แตะบัญชีคนอื่นเลย · ปิด setting = ลบ alarm ทันที · ไม่มีอะไรออกจากเครื่อง |
+
+**§13 ยังอยู่ครบ** — กฎคือห้าม poll ตำแหน่ง**คนอื่น**เป็นพื้นหลัง สิ่งที่ทำคือถามว่า*ตัวเอง*อยู่ไหน
+
+### กฎที่ต้องไม่พัง
+
+1. **ไม่มีคำตอบ ≠ ออกจากเกม** — lookup ล้มเหลว / rate limit / enum ที่ไม่รู้จัก → **ไม่ปิด session**
+   ถ้าปิด session จริงที่เล่นอยู่ 3 ชั่วโมงจะถูกตัดเพราะ request เดียวพลาด แล้วผู้ใช้จะเห็นเลขผิด
+   โดยไม่มีทางรู้ว่าผิด · `decideFollow()` เป็น pure มี test 13 เคสคุมข้อนี้โดยเฉพาะ
+2. **`confirmedAt` ทำให้ cap 45 นาทีไม่ตัดเกมยาว** — เดิม open session ถูก cap ที่ idle timeout
+   เพราะเรารู้แค่ "เริ่มเมื่อไหร่" · ตอนนี้ทุกครั้งที่ presence ยืนยัน จะเขียน `confirmedAt` ลง storage
+   แล้ว `sessionDuration` / `isStale` นับจาก **หลักฐานล่าสุด** ไม่ใช่จากตอนเริ่ม
+   → เล่น 3 ชั่วโมงได้ 3 ชั่วโมง · session ที่ไม่มีใครยืนยันยังถูก cap เหมือนเดิมเป๊ะ
+3. **`endedBy` บอกว่าเลขนั้นเชื่อได้แค่ไหน** — `presence` = เห็นตอนจบจริง · `join`/`stop`/`stale` =
+   อนุมาน · visit log เขียนคนละประโยคให้สองแบบนี้ ไม่ปัดให้เท่ากัน
+4. **Roblox ไม่บอก server เสมอ** — ถ้าได้ `placeId` แต่ไม่ได้ `gameId` → เก็บ session ด้วย
+   `jobId: ''` แล้ว UI เขียนว่า **"server not named"** ไม่ใช่ปล่อยว่างให้ดูเหมือนบั๊ก
+5. **session ที่ detect ได้ ไม่เข้า Server History** — History คือ "เซิร์ฟที่กด join ผ่านเรา"
+   (มี flag/status ผูกอยู่) ส่วน **Your visits** คือทุกครั้งที่เล่นจริง · สองอันตอบคนละคำถาม
+   จงใจไม่รวมกัน · presence-detected session จึงเขียนแค่ playtime ไม่แตะ report/history
+6. **สถานะต้องพูดออกมาเสมอ** — `lastPresenceFollow` เก็บเหตุผลของ poll ล่าสุด (รวม "ยังไม่ได้ Grant",
+   "ไม่รู้ว่าใคร login") เพราะ tracker ที่ตัดสินใจถูกว่า "ไม่ต้องทำอะไร" หน้าตาเหมือน tracker ที่พัง
+
+### บั๊ก MV3 ที่เจอระหว่างทาง (สำคัญ)
+
+`chrome.alarms.onAlarm` เคยถูก register **ข้างใน `registerAlarms(context)`** ซึ่งรันหลัง
+`AppContext.create()` → MV3 ปลุก service worker ตอน alarm ดัง แล้ว dispatch event ให้เฉพาะ
+listener ที่มีอยู่**ตอน script ประเมินเสร็จ** · listener ที่มาทีหลัง 2-3 await **พลาด event ที่ปลุกตัวเอง**
+เงียบ ๆ → prune alarm เดิมก็โดนด้วย · ย้ายไป register ที่ **top level ของ `serviceWorker.ts`**
+แล้วให้ `alarms.ts` export `handleAlarm` แทน (สร้าง alarm ได้ แต่ไม่ฟังเอง)

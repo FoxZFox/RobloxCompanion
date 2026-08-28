@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../../config/constants';
 import type { PlaySession } from '../../features/playtime/playtime';
-import { closeSession, isStale, SESSION_IDLE_TIMEOUT_MS } from '../../features/playtime/playtime';
+import { closeSession, isStale, staleEndFor } from '../../features/playtime/playtime';
 import { BaseRepository } from './storageArea';
 
 /** Keeps storage bounded; older sessions are summarised away rather than kept forever. */
@@ -34,8 +34,12 @@ export class PlaytimeRepository extends BaseRepository {
     const open = sessions.find((entry) => entry.endedAt === undefined);
 
     if (open) {
-      const endedAt = isStale(open, now) ? open.startedAt + SESSION_IDLE_TIMEOUT_MS : now;
-      Object.assign(open, closeSession(open, endedAt));
+      const stale = isStale(open, now);
+      Object.assign(open, closeSession(open, stale ? staleEndFor(open) : now), {
+        // What ended it is what started this one: a launch through us, or Roblox telling
+        // us the user had moved. Only the second is an end anybody observed.
+        endedBy: stale ? 'stale' : (session.startedBy ?? 'join'),
+      });
     }
 
     const next: PlaySession = { ...session, startedAt: now };
@@ -43,13 +47,34 @@ export class PlaytimeRepository extends BaseRepository {
     await this.persist(sessions.slice(0, MAX_SESSIONS));
   }
 
-  /** Explicit stop, from the user pressing "stop tracking". */
-  async endSession(now = Date.now()): Promise<void> {
+  /**
+   * Closes the open session, recording what closed it.
+   *
+   * `presence` is the only value that means the end was seen rather than assumed, and the
+   * visit log words the duration differently because of it.
+   */
+  async endSession(now = Date.now(), endedBy: PlaySession['endedBy'] = 'stop'): Promise<void> {
     const sessions = await this.list();
     const open = sessions.find((entry) => entry.endedAt === undefined);
     if (!open) return;
-    Object.assign(open, closeSession(open, now));
+    Object.assign(open, closeSession(open, now), { endedBy });
     await this.persist(sessions);
+  }
+
+  /**
+   * Records that the open session was still running at `now`.
+   *
+   * Written through rather than kept in memory: the service worker sleeps between polls,
+   * and a confirmation that did not survive that would leave every session looking
+   * abandoned at the 45-minute mark again.
+   */
+  async confirmOpen(now = Date.now()): Promise<boolean> {
+    const sessions = await this.list();
+    const open = sessions.find((entry) => entry.endedAt === undefined);
+    if (!open) return false;
+    open.confirmedAt = now;
+    await this.persist(sessions);
+    return true;
   }
 
   async openSession(): Promise<PlaySession | null> {
@@ -61,7 +86,7 @@ export class PlaytimeRepository extends BaseRepository {
     const sessions = await this.list();
     const open = sessions.find((entry) => entry.endedAt === undefined);
     if (!open || !isStale(open, now)) return false;
-    Object.assign(open, closeSession(open, open.startedAt + SESSION_IDLE_TIMEOUT_MS));
+    Object.assign(open, closeSession(open, staleEndFor(open)), { endedBy: 'stale' });
     await this.persist(sessions);
     return true;
   }

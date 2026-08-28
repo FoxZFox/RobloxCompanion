@@ -1,7 +1,8 @@
 import type { UiRequest } from '../models/messages';
-import { registerAlarms } from './alarms';
+import { handleAlarm, registerAlarms } from './alarms';
 import { AppContext } from './context';
 import { handleRequest } from './messageRouter';
+import { handleQuery, isUiQuery } from './queryRouter';
 import { applySurfaceBehavior } from './surfaceBehavior';
 
 /**
@@ -18,7 +19,42 @@ function getContext(): Promise<AppContext> {
   return contextPromise;
 }
 
+/*
+ * Registered here, at the top level, and not inside registerAlarms where it used to live.
+ *
+ * MV3 shuts the worker down when idle and wakes it for an alarm only to deliver the event
+ * to listeners that exist once this script has finished evaluating. A listener added a few
+ * awaits later - after the context is built - can miss the very event that woke the
+ * worker, which is exactly the case that matters for a poll that runs while nobody is
+ * clicking anything.
+ */
+chrome.alarms.onAlarm.addListener((alarm) => {
+  void (async () => {
+    try {
+      await handleAlarm(await getContext(), alarm);
+    } catch {
+      // A failed sweep or poll must not take the worker down with it.
+    }
+  })();
+});
+
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+  // Queries are checked first because they are a subset of the same shape: both carry a
+  // `type`, and only the prefix says which router owns it.
+  if (isUiQuery(message)) {
+    void (async () => {
+      try {
+        sendResponse(await handleQuery(await getContext(), message));
+      } catch (err) {
+        sendResponse({
+          ok: false,
+          error: { code: 'INTERNAL', message: err instanceof Error ? err.message : String(err) },
+        });
+      }
+    })();
+    return true;
+  }
+
   if (!isUiRequest(message)) return false;
 
   void (async () => {

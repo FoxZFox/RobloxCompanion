@@ -182,3 +182,43 @@ describe('PlaytimeRepository', () => {
     expect((await new PlaytimeRepository(storage).openSession())?.jobId).toBe('a');
   });
 });
+
+describe('a session Roblox keeps confirming', () => {
+  const START = Date.parse('2026-08-28T08:00:00.000Z');
+  const HOUR = 60 * 60 * 1000;
+
+  function followed(patch: Partial<PlaySession> = {}): PlaySession {
+    return { placeId: '1', jobId: 'a', startedAt: START, startedBy: 'presence', ...patch };
+  }
+
+  /*
+   * The reason `confirmedAt` exists. Without it every open session is capped at the idle
+   * timeout, which is right when the only thing we ever saw was the start - and wrong the
+   * moment Roblox is telling us, every minute, that the session is still running.
+   */
+  it('runs past the idle cap while confirmations keep arriving', () => {
+    const session = followed({ confirmedAt: START + 3 * HOUR });
+    expect(sessionDuration(session, START + 3 * HOUR)).toBe(3 * HOUR);
+  });
+
+  it('is not stale while it is being confirmed', () => {
+    const session = followed({ confirmedAt: START + 3 * HOUR });
+    expect(isStale(session, START + 3 * HOUR + 60_000)).toBe(false);
+  });
+
+  it('goes stale once the confirmations stop, not once the session gets long', () => {
+    const session = followed({ confirmedAt: START + 3 * HOUR });
+    expect(isStale(session, START + 3 * HOUR + SESSION_IDLE_TIMEOUT_MS)).toBe(true);
+  });
+
+  it('stops counting at the last confirmation plus the timeout, not at now', () => {
+    const session = followed({ confirmedAt: START + HOUR });
+    const muchLater = START + 9 * HOUR;
+    expect(sessionDuration(session, muchLater)).toBe(HOUR + SESSION_IDLE_TIMEOUT_MS);
+  });
+
+  it('still caps a session nobody confirmed, exactly as before', () => {
+    const session: PlaySession = { placeId: '1', jobId: 'a', startedAt: START };
+    expect(sessionDuration(session, START + 9 * HOUR)).toBe(SESSION_IDLE_TIMEOUT_MS);
+  });
+});

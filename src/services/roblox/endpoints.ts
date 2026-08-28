@@ -147,6 +147,25 @@ export function placePrivateServersUrl(placeId: string): string {
   return `${GAMES_API}/games/${encodeURIComponent(placeId)}/private-servers`;
 }
 
+/**
+ * The web link that lets somebody else into a private server.
+ *
+ * Built from `joinCode`, the field `GET vip-servers/{id}` carries, and from nothing else.
+ * In particular NOT from `accessCode`: that is the token the launcher takes, a different
+ * value with a different lifetime, and a link built from it would look right and admit
+ * nobody.
+ *
+ * Roblox mints a join code when the owner asks for a share link on its own site, and the
+ * only API that mints one is the PATCH this extension will not make - it regenerates the
+ * code, silently invalidating any link the user has already handed out. So this formats a
+ * link that already exists; it never brings one into being.
+ */
+export function privateServerLinkUrl(placeId: string, joinCode: string): string {
+  const url = new URL(`${WEB_ORIGIN}/games/${encodeURIComponent(placeId)}`);
+  url.searchParams.set('privateServerLinkCode', joinCode);
+  return url.toString();
+}
+
 /* ---------------------------------------------------------- probe-only, for now
  * Every URL below is `docs-only` and is currently reachable ONLY from the API probe.
  * They exist so one probe run can tell us which of phases 5, 7, 8 and 9 rest on
@@ -174,6 +193,18 @@ export function userDetailsUrl(userId: number): string {
  */
 export function presenceUrl(): string {
   return `${PRESENCE_API}/presence/users`;
+}
+
+/**
+ * planned. POST `{ userIds: number[] }` - when each of them was last online.
+ *
+ * Probe-only, and that is the whole point of adding it now: "last online" is the one
+ * profile feature left that needs no new host permission (presence is already granted for
+ * the blacklist), so a single probe run decides whether it can be built at all. Nothing
+ * outside the probe may call it until the map records a real response (rule 7).
+ */
+export function lastOnlineUrl(): string {
+  return `${PRESENCE_API}/presence/last-online`;
 }
 
 /** docs-only. Friends of one user; phase 8's mutual-friends idea rests on this. */

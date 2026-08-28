@@ -44,6 +44,7 @@ export const FEATURES: readonly FeatureDefinition[] = [
 export const PHASE_NOTES: readonly string[] = [
   'phase 4: custom flags live under the Server Browser feature',
   'phase 5: backup and restore live under Player Blacklist and Settings',
+  'phase 7: the per-server visit log lives under Playtime Tracking',
 ];
 
 /**

@@ -1,8 +1,9 @@
 import { approvalRatio, formatVoteCount } from '../features/experience/liveStats';
 import { useLiveStats } from '../hooks/useLiveStats';
 import { sessionDuration, startOfDay } from '../features/playtime/playtime';
+import { describeDuration, describeServerAge } from '../features/playtime/sessionLog';
 import type { AppState, UiRequest } from '../models/messages';
-import { formatAgo, formatDuration } from '../utils/format';
+import { formatAgo, formatDuration, formatTime, shortJobId } from '../utils/format';
 
 interface Props {
   state: AppState;
@@ -66,7 +67,11 @@ export function PlaytimePane({ state, busy, send }: Props): React.JSX.Element {
             </button>
           </div>
         ) : null}
+
+        <FollowStatus state={state} now={now} send={send} />
       </div>
+
+      <SessionLog state={state} now={now} />
 
       {state.playtime.length === 0 ? (
         <div className="rc-empty">
@@ -104,6 +109,116 @@ export function PlaytimePane({ state, busy, send }: Props): React.JSX.Element {
         </div>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Whether sessions are being followed, and when Roblox last answered.
+ *
+ * A tracker that has correctly decided to do nothing looks exactly like a broken one, so
+ * the last poll is shown with the sentence that came with it. Off, this is one line and
+ * a way to turn it on rather than silence.
+ */
+function FollowStatus({
+  state,
+  now,
+  send,
+}: {
+  state: AppState;
+  now: number;
+  send: (request: UiRequest) => void;
+}): React.JSX.Element {
+  const following = state.settings.playtime.followPresence;
+  const last = state.presenceFollow;
+
+  if (!following) {
+    return (
+      <div className="rc-footnote" style={{ marginTop: 8 }}>
+        Only joins made through this extension are tracked. To count games you start from
+        Roblox itself — and to end a session when you actually leave — turn on{' '}
+        <button
+          type="button"
+          className="rc-linkish"
+          onClick={() => send({ type: 'ui/openOptions' })}
+        >
+          Track sessions from my Roblox presence
+        </button>{' '}
+        in Settings.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rc-footnote" style={{ marginTop: 8 }} role="status">
+      Following your Roblox presence.{' '}
+      {last
+        ? `Last checked ${formatAgo(last.at, now)} — ${last.reason}`
+        : 'Waiting for the first check, which runs within a minute.'}
+    </div>
+  );
+}
+
+/**
+ * Every visit, server by server (spec section 18, with the duration it was missing).
+ *
+ * Three facts per row, and each one is worded for how well it is actually known:
+ *
+ *   - which experience and which instance: certain, we launched it
+ *   - how long: measured from the join, so an upper bound - the same caveat the totals
+ *     above carry, which is why it is not repeated on every row
+ *   - how old the server was: a floor, from our own first sighting, or "not known" where
+ *     the join was the first sighting. Roblox publishes no server start time at all, so
+ *     there is no version of this row that could say "uptime: 42m" honestly.
+ */
+function SessionLog({ state, now }: { state: AppState; now: number }): React.JSX.Element | null {
+  if (state.sessions.length === 0) return null;
+
+  return (
+    <div className="rc-card" style={{ marginBottom: 10 }}>
+      <div className="rc-card__label">Your visits</div>
+      <p className="rc-header__sub" style={{ marginTop: 0 }}>
+        Which server, in which experience, and for how long. Server age is measured from
+        the first time this extension saw that server — Roblox publishes no start time, so
+        it is a floor, never the real uptime.
+      </p>
+
+      {state.sessions.map((entry) => (
+        <div className="rc-row" key={`${entry.jobId}-${entry.joinedAt}`}>
+          <div className="rc-row__top">
+            <strong>{entry.gameName ?? `Place ${entry.placeId}`}</strong>
+            <span className="rc-row__count">
+              {entry.open ? '▶ ' : ''}
+              {formatDuration(entry.durationMs)}
+            </span>
+          </div>
+          <div className="rc-meta">
+            {/*
+              Roblox names the server for one's own account, but not always - and a blank
+              where an id should be would look like a bug rather than a disclosure that
+              did not happen.
+            */}
+            <span title={entry.jobId || undefined}>
+              {entry.jobId ? shortJobId(entry.jobId) : 'server not named'}
+            </span>
+            <span className="rc-meta__sep">·</span>
+            <span>joined {formatTime(entry.joinedAt)}</span>
+            <span className="rc-meta__sep">·</span>
+            <span>{formatAgo(entry.joinedAt, now)}</span>
+            {entry.detected ? (
+              <>
+                <span className="rc-meta__sep">·</span>
+                <span title="You started this outside the extension; Roblox presence reported it">
+                  detected
+                </span>
+              </>
+            ) : null}
+          </div>
+          <div className="rc-footnote">
+            {describeDuration(entry)} {describeServerAge(entry)}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

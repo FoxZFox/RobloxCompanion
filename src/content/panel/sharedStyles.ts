@@ -77,7 +77,9 @@ export const SHARED_STYLES = `.rc-root {
 }
 
 .rc-card__label {
-  margin-bottom: 6px;
+  /* Also used on real headings on the settings and dashboard pages, where the browser
+     would otherwise add its own margin and font size. */
+  margin: 0 0 6px;
   color: var(--rc-text-faint);
   font-size: 10px;
   font-weight: 700;
@@ -236,6 +238,14 @@ export const SHARED_STYLES = `.rc-root {
   gap: 4px;
   padding: 8px 12px;
 }
+
+/*
+ * The toast list stays in the document even with nothing in it, so a screen reader has
+ * a live region to watch before the first message arrives. Zeroing the padding keeps that
+ * from showing as a gap; display:none would take it out of the accessibility tree, which
+ * is exactly what must not happen here.
+ */
+.rc-toasts:empty { padding: 0; }
 
 .rc-toast {
   padding: 7px 10px;
@@ -558,6 +568,25 @@ export const SHARED_STYLES = `.rc-root {
 .rc-surface__count { color: var(--rc-text-muted); }
 .rc-surface--none .rc-surface__label { color: var(--rc-text-faint); }
 .rc-surface--none .rc-surface__count { color: var(--rc-bugged); }
+
+/*
+ * A button that reads as part of a sentence.
+ *
+ * It stays a <button> rather than becoming an <a>: it performs an action (opening the
+ * settings page through the service worker) rather than going to a URL, and a link that
+ * is not a link is one of the easier ways to make a page unusable by keyboard.
+ */
+.rc-linkish {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--rc-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rc-linkish:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: 2px; }
 
 /* -------------------------------------------------------------- Accessibility */
 

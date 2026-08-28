@@ -1,5 +1,6 @@
 import type { AppState, UiRequest } from '../models/messages';
 import type { PopulationPreference } from '../models/smartJoin';
+import { Row, Section, Toggle } from './controls';
 
 interface Props {
   state: AppState;
@@ -17,33 +18,54 @@ interface Props {
  */
 export function SmartJoinSettings({ state, busy, send }: Props): React.JSX.Element {
   const smart = state.settings.smartJoin;
+  const privateServers = state.settings.features.privateServers;
 
   return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">Smart Join</div>
+    <Section title="Smart Join">
+      <Row
+        label="Prefer servers that are"
+        hint="Smart Join scores every server already loaded and joins the best one. It makes no extra requests to Roblox."
+      >
+        {(ids) => (
+          <select
+            id={ids.id}
+            aria-describedby={ids.describedBy}
+            className="rc-select"
+            value={smart.population}
+            disabled={busy}
+            onChange={(e) =>
+              send({
+                type: 'settings/set',
+                patch: { smartJoin: { population: e.target.value as PopulationPreference } },
+              })
+            }
+          >
+            <option value="lowest">Emptiest</option>
+            <option value="balanced">Around half full</option>
+            <option value="highest">Busiest</option>
+          </select>
+        )}
+      </Row>
 
-      <div className="rc-field">
-        <span className="rc-field__label">Prefer servers that are</span>
-        <select
-          className="rc-select"
-          value={smart.population}
-          disabled={busy}
-          onChange={(e) =>
-            send({
-              type: 'settings/set',
-              patch: { smartJoin: { population: e.target.value as PopulationPreference } },
-            })
-          }
-        >
-          <option value="lowest">Emptiest</option>
-          <option value="balanced">Around half full</option>
-          <option value="highest">Busiest</option>
-        </select>
-        <span className="rc-header__sub">
-          Smart Join scores every server already loaded and joins the best one. It makes no
-          extra requests to Roblox.
-        </span>
-      </div>
+      {/*
+        Spec section 29. Off by default: it changes where the user lands, which is not
+        something to inherit by surprise. Switched on it is also the cheaper path - the
+        private list is one request, and finding something in it means no public page is
+        fetched at all.
+      */}
+      <Toggle
+        label="Take a private server you can enter here first"
+        hint={
+          privateServers
+            ? 'When Roblox says you may enter a private server on this experience, Smart Join takes it instead of scoring public ones — and says so in Explain Why. Nothing is created and nothing is bought; it uses only servers you already have. If there is none, or every one is full, it scores public servers as usual.'
+            : 'Needs the Private Servers feature, which is switched off above.'
+        }
+        checked={privateServers && smart.preferOwnPrivateServer}
+        disabled={busy || !privateServers}
+        onChange={(preferOwnPrivateServer) =>
+          send({ type: 'settings/set', patch: { smartJoin: { preferOwnPrivateServer } } })
+        }
+      />
 
       <div className="rc-field">
         <span className="rc-field__label">Signals used</span>
@@ -85,6 +107,6 @@ export function SmartJoinSettings({ state, busy, send }: Props): React.JSX.Eleme
           would need a backend of our own to be done properly.
         </span>
       </div>
-    </section>
+    </Section>
   );
 }

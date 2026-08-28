@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { PrivateServer } from '../../models/privateServer';
+import type { JoinablePrivateServer, PrivateServer } from '../../models/privateServer';
 import {
+  choosePrivateServer,
   describeExpiry,
   parseJoinable,
   groupByExperience,
@@ -187,5 +188,112 @@ describe('parseJoinable', () => {
   it('falls back to the account name when there is no display name', () => {
     const parsed = parseJoinable({ ...RAW_JOINABLE, owner: { name: 'Someone' } });
     expect(parsed?.server.ownerName).toBe('Someone');
+  });
+});
+
+describe('choosePrivateServer', () => {
+  function joinable(patch: Partial<JoinablePrivateServer> = {}): JoinablePrivateServer {
+    return {
+      vipServerId: 1,
+      name: 'Server',
+      ownerName: null,
+      playing: 0,
+      maxPlayers: 10,
+      ...patch,
+    };
+  }
+
+  it('takes the emptiest when that is the preference', () => {
+    const chosen = choosePrivateServer(
+      [
+        joinable({ vipServerId: 1, name: 'Busy', playing: 8 }),
+        joinable({ vipServerId: 2, name: 'Quiet', playing: 1 }),
+      ],
+      'lowest',
+    );
+
+    expect(chosen?.vipServerId).toBe(2);
+  });
+
+  it('takes the busiest when that is the preference', () => {
+    const chosen = choosePrivateServer(
+      [
+        joinable({ vipServerId: 1, name: 'Busy', playing: 8 }),
+        joinable({ vipServerId: 2, name: 'Quiet', playing: 1 }),
+      ],
+      'highest',
+    );
+
+    expect(chosen?.vipServerId).toBe(1);
+  });
+
+  it('takes the one nearest half full when balanced', () => {
+    const chosen = choosePrivateServer(
+      [
+        joinable({ vipServerId: 1, name: 'Empty', playing: 0, maxPlayers: 10 }),
+        joinable({ vipServerId: 2, name: 'Half', playing: 5, maxPlayers: 10 }),
+        joinable({ vipServerId: 3, name: 'Nearly full', playing: 9, maxPlayers: 10 }),
+      ],
+      'balanced',
+    );
+
+    expect(chosen?.vipServerId).toBe(2);
+  });
+
+  it('skips a full server rather than sending someone into a refusal', () => {
+    const chosen = choosePrivateServer(
+      [
+        joinable({ vipServerId: 1, name: 'Full', playing: 10, maxPlayers: 10 }),
+        joinable({ vipServerId: 2, name: 'Room left', playing: 9, maxPlayers: 10 }),
+      ],
+      'highest',
+    );
+
+    expect(chosen?.vipServerId).toBe(2);
+  });
+
+  it('returns null when every server is full, so the caller can fall back to public', () => {
+    const chosen = choosePrivateServer([joinable({ playing: 10, maxPlayers: 10 })], 'lowest');
+    expect(chosen).toBeNull();
+  });
+
+  /*
+   * The rule that matters most here: an unmeasured server is not an empty one. Sorting it
+   * first under "emptiest" would mean joining the server we know least about precisely
+   * because we know least about it.
+   */
+  it('ranks a server with no player count behind every server that has one', () => {
+    const chosen = choosePrivateServer(
+      [
+        joinable({ vipServerId: 1, name: 'Unknown', playing: null, maxPlayers: null }),
+        joinable({ vipServerId: 2, name: 'Known', playing: 6 }),
+      ],
+      'lowest',
+    );
+
+    expect(chosen?.vipServerId).toBe(2);
+  });
+
+  it('still uses an unmeasured server when it is the only one', () => {
+    const chosen = choosePrivateServer(
+      [joinable({ vipServerId: 7, playing: null, maxPlayers: null })],
+      'lowest',
+    );
+
+    expect(chosen?.vipServerId).toBe(7);
+  });
+
+  it('picks the same server every time from the same list', () => {
+    const servers = [
+      joinable({ vipServerId: 1, name: 'B', playing: 3 }),
+      joinable({ vipServerId: 2, name: 'A', playing: 3 }),
+    ];
+
+    expect(choosePrivateServer(servers, 'lowest')?.vipServerId).toBe(2);
+    expect(choosePrivateServer([...servers].reverse(), 'lowest')?.vipServerId).toBe(2);
+  });
+
+  it('has nothing to choose from an empty list', () => {
+    expect(choosePrivateServer([], 'lowest')).toBeNull();
   });
 });

@@ -65,11 +65,36 @@ GET https://games.roblox.com/v1/games/{placeId}/servers/Public
 | **pagination cap ~150–500 เซิร์ฟ** แล้ว `nextPageCursor` เป็น `null` เอง | UI เขียน "จาก N เซิร์ฟที่แสดงได้" ไม่ใช่ "ทั้งหมด" (§33) |
 | **`playerTokens` มีมาจริง** (แก้ 28 ส.ค. 2026) | เชื่อมกับตัวคนได้ทางเดียวคือ fingerprint thumbnail ซึ่ง §13 ห้าม → blacklist ยังตอบ `unknown` แต่เพราะ**นโยบาย** ไม่ใช่เพราะทำไม่ได้ |
 | **`ping` / `fps` = ค่าเฉลี่ยฝั่ง server** ไม่ใช่ latency ของผู้ใช้ | label เป็น `avg 43ms` เท่านั้น |
-| ไม่มี field uptime / created / version | server age ใช้ `firstSeenAt` ของเราเองเป็น proxy |
+| ไม่มี field uptime / created / version | server age ใช้ `firstSeenAt` ของเราเองเป็น **floor** · jobId เป็น v4 จึงไม่มี timestamp สำรอง (ดูล่าง) |
 | ไม่มี API เช็ค JobId เดี่ยว | ต้อง scan แล้ว match เอง → `computeLiveness` |
 | guest = **3 req/60s**, authenticated ≈ **100 req/60s** | ดูหัวข้อ Transport |
 | CORS อนุญาตเฉพาะ origin `https://www.roblox.com` | fetch ต้องวิ่งผ่าน content script |
 | Roblox ประกาศ (ก.ย. 2025) จะปิด API นี้สำหรับผู้ที่ไม่ล็อกอิน | ส่ง credentials ตั้งแต่แรก |
+
+### เวลาเริ่มของเซิร์ฟ — **ถามแล้ว ตอบแล้ว: ทำไม่ได้** (28 ส.ค. 2026)
+
+response ไม่มี field เวลาเลย แต่ **jobId เป็น UUID** และ UUID **version 1** มี timestamp 60 บิต
+ฝังอยู่ข้างใน (v4 = สุ่มล้วน ไม่มีอะไรให้อ่าน) → ถ้า Roblox mint แบบ v1 เราจะได้เวลาเริ่มจริง
+ของทุกเซิร์ฟ **ฟรี ไม่ต้องยิงอะไรเพิ่มเลย**
+
+→ ทำ **Settings → Developer mode → Server clock** อ่าน version nibble ของ jobId ที่ถืออยู่แล้ว
+(ไม่ยิง request) · `features/devtools/jobIdClock.ts` (pure, test 9 เคส)
+
+**ผลจริงจากผู้ใช้ 28 ส.ค. 2026:**
+
+```
+198 × v4
+No id carries a usable timestamp
+```
+
+→ **ปิดประตูถาวร** · jobId ของ Roblox เป็น **UUID v4 สุ่มล้วน** ไม่มี timestamp ให้ถอด
+→ `server uptime` จำแนกเป็น ⚠️ **ไม่มีทางรู้จาก browser** (ไม่ใช่ 🔵 ที่ backend ช่วยได้ด้วยซ้ำ —
+backend ก็อ่าน API ตัวเดียวกันและไม่มี field นี้เหมือนกัน)
+→ อายุเซิร์ฟที่แสดงได้มีทางเดียวคือ **floor จากการที่เราเห็นเอง** และต้องเขียนว่า "อย่างน้อย"
+เสมอ · ที่ไม่เคยเห็นมาก่อน = **"not known"** ไม่ใช่ 0
+
+> การ์ด Server clock ยังอยู่ (dev only) เพราะนี่คือข้อเท็จจริงว่า Roblox mint id ยังไง **วันนี้**
+> ไม่ใช่กฎธรรมชาติ · ถ้าวันหนึ่งสงสัยว่าเปลี่ยน กดเช็คซ้ำได้ใน 2 วินาที
 
 **Rate limit headers** (อ่านได้จาก service worker เท่านั้น — ไม่ใช่ CORS-safelisted):
 
@@ -238,6 +263,26 @@ response นี้ละเอียดกว่า list มาก (มี `subs
 - **ไม่มี fallback chain** สำหรับ private join · start URL กับ deeplink รับได้แต่ jobId
   ถ้าปล่อยให้ fall through ผู้ใช้จะโดนโยนเข้า public server ทั้งที่บอกว่า join private → **fail ตรง ๆ ดีกว่า**
 
+### Share link — **`joinCode` ไม่ใช่ `accessCode`** (v0.9.0, 28 ส.ค. 2026)
+
+สองค่านี้หน้าตาเหมือนกันว่าเป็น "รหัสเข้า private server" แต่**คนละตัว คนละที่ใช้**:
+
+| | มาจาก | ใช้ทำอะไร |
+|---|---|---|
+| `accessCode` | `GET games/{placeId}/private-servers` | ส่งให้ `joinPrivateGame()` — **launcher เท่านั้น** |
+| `joinCode` | `GET vip-servers/{id}` | ตัวที่อยู่ในลิงก์ `?privateServerLinkCode=` ของเว็บ |
+
+→ ลิงก์ที่ประกอบจาก `accessCode` จะ**หน้าตาถูกทุกอย่างแต่เข้าไม่ได้** · ฟีเจอร์ Share link จึง
+**อ่าน `joinCode`** อย่างเดียว: มี = ประกอบลิงก์ให้ · ไม่มี (`null`) = บอกว่า Roblox ยังไม่เคย
+สร้างลิงก์ให้เซิร์ฟนั้น แล้วให้ผู้ใช้ไปสร้างเองบนหน้า Roblox
+
+**ทำไมไม่สร้างให้เลย** — สร้างลิงก์ = `PATCH /v1/vip-servers/{id}` ซึ่ง **regenerate** ลิงก์เดิม
+ลิงก์ที่ผู้ใช้แจกเพื่อนไปแล้วจะตายทันทีโดยไม่มีใครรู้ตัว → ไม่ใช่การกระทำที่ extension
+จะทำแทนใครได้ (§8)
+
+**ลิงก์เป็นความลับเหมือนกัน** จึงตอบผ่าน **one-shot query** (`query/privateServerLink`)
+ที่ไม่ผ่าน `AppState` — ขอทีละครั้ง ตอบครั้งเดียว ไม่เก็บ ไม่ broadcast ไปให้ surface อื่น
+
 ⚠️ **ราคาต้องอ่านต่อผู้ใช้ ไม่ใช่ต่อเกม** — ตั้งแต่ 30 เม.ย. 2026 Roblox ให้ Premium/Plus
 subscriber สร้าง private server ฟรีแม้เกมตั้งราคาไว้ ดังนั้น logic §9 ("price = 0 → สร้างได้เลย")
 ต้องอิงจากสิ่งที่ API บอกว่า **ผู้ใช้คนนี้จะถูกเรียกเก็บเท่าไหร่** ไม่ใช่ราคาที่เกมประกาศ
@@ -255,7 +300,7 @@ subscriber สร้าง private server ฟรีแม้เกมตั้�
 | `users.roblox.com/v1/users/{userId}` | GET | `docs-only` | ชื่อ/displayName ปัจจุบัน |
 | `thumbnails.roblox.com/v1/users/avatar-headshot` | GET | `planned` | รูป avatar ใน blacklist page |
 | `presence.roblox.com/v1/presence/users` | POST | ✅ **`verified-live`** (ดูล่าง) | `gameId` = jobId |
-| `presence.roblox.com/v1/presence/last-online` | POST | `planned` | Last online (§23) |
+| `presence.roblox.com/v1/presence/last-online` | POST | `planned` · **อยู่ใน probe แล้ว (v0.9.0)** | Last online (§23) — host เดียวกับ presence ที่ Grant แล้ว แต่คนละ endpoint คนละกฎ privacy → ต้องเห็น response จริงก่อนสร้าง UI |
 
 **Presence — verified 28 ส.ค. 2026 แต่ verify ได้แค่ครึ่งเดียว**
 
@@ -266,6 +311,10 @@ subscriber สร้าง private server ฟรีแม้เกมตั้�
 ```
 
 `gameId` **มาครบสำหรับบัญชีตัวเอง** → รูปร่าง response ยืนยันแล้ว และ Phase 5 เขียนได้
+
+**และนั่นคือสิ่งที่ทำให้ session tracking เป็นไปได้ (v0.11.0)** — ถามบัญชีตัวเองนาทีละครั้ง
+ก็รู้ว่ากำลังอยู่เกมไหน เซิร์ฟไหน และรู้ตอนที่ออกด้วย → playtime เลิกเป็น upper bound
+· ดู `HANDOFF.md` §18 · **default ปิด** และไม่แตะบัญชีคนอื่นเลย
 
 ⚠️ **แต่นี่ยังไม่ตอบคำถามที่สำคัญกว่า** — เราต้องใช้กับ **คนอื่น** (คนใน blacklist) ซึ่ง Roblox
 คืน `gameId` ให้เฉพาะเมื่อ privacy ของ**เป้าหมาย**อนุญาต การเห็นข้อมูลตัวเองครบ **ไม่ได้แปลว่า**
@@ -296,6 +345,7 @@ subscriber สร้าง private server ฟรีแม้เกมตั้�
 | `avatar/{id}/avatar` | 8 | ✅ `{assets:[{id, name, assetType:{id,name}, currentVersionId}], playerAvatarType:"R15"}` |
 | `search-api/omni-search` | 7 | ✅ **`verified-live`** — แต่ **ต้องมี `sessionId`** (ดูล่าง) |
 | `trades/inbound` · `trades/completed` | 9 | ○ ตอบ 200 ทั้งคู่ แต่บัญชีนี้ไม่มีเทรดเลย → **ยังไม่เห็นรูปร่าง** |
+| `presence/last-online` | 8 | ⏳ **เพิ่มเข้า probe v0.9.0 — ยังไม่เคยรัน** |
 
 ### omni-search — `sessionId` คือทั้งหมดที่ขาด (verified 28 ส.ค. 2026)
 
@@ -373,7 +423,7 @@ flow: ยิงไปก่อนโดยไม่มี token → ได้ `4
 | อยากได้ | ความจริง |
 |---|---|
 | ping จริงของผู้ใช้ต่อเซิร์ฟ | ไม่มี — ที่ API ให้คือค่าเฉลี่ยฝั่ง server |
-| server uptime / created time | ไม่มี |
+| server uptime / created time | **ไม่มี และไม่มีทางได้** — ไม่อยู่ใน response · jobId เป็น UUID **v4** (ยืนยัน 198 ตัว 28 ส.ค. 2026) จึงไม่มี timestamp ให้ถอด → เหลือทางเดียวคือ floor จากการที่เราเห็นเอง |
 | server version / build | ไม่มี |
 | รายชื่อผู้เล่นใน public server | `players` ว่าง · `playerTokens` มีมาจริงแต่ §13 ห้ามเอาไป fingerprint |
 | **region ของเซิร์ฟ** | มีข้อมูล แต่ **browser เข้าไม่ถึง** — ต้องมี backend (ดู §3) |

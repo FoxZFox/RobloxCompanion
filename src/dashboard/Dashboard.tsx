@@ -42,11 +42,11 @@ export function Dashboard(): React.JSX.Element {
         </button>
       </header>
 
-      <div className="rc-body">
+      <main className="rc-body">
         <Overview state={state} />
 
-        <section className="rc-card" style={{ marginBottom: 12 }}>
-          <div className="rc-card__label">Flagged servers</div>
+        <section className="rc-card" aria-labelledby="rc-dash-flagged" style={{ marginBottom: 12 }}>
+          <h2 className="rc-card__label" id="rc-dash-flagged">Flagged servers</h2>
           {state.flagged.length === 0 ? (
             <div className="rc-empty">
               Nothing flagged yet.
@@ -82,8 +82,8 @@ export function Dashboard(): React.JSX.Element {
           )}
         </section>
 
-        <section className="rc-card" style={{ marginBottom: 12 }}>
-          <div className="rc-card__label">Recent joins</div>
+        <section className="rc-card" aria-labelledby="rc-dash-recent" style={{ marginBottom: 12 }}>
+          <h2 className="rc-card__label" id="rc-dash-recent">Recent joins</h2>
           {state.history.slice(0, 10).map((entry) => (
             <div className="rc-row" key={`${entry.jobId}-${entry.joinedAt}`}>
               <div className="rc-row__top">
@@ -102,14 +102,14 @@ export function Dashboard(): React.JSX.Element {
           {state.history.length === 0 ? <div className="rc-empty">No joins recorded yet.</div> : null}
         </section>
 
-        <section className="rc-card">
-          <div className="rc-card__label">Coming later</div>
+        <section className="rc-card" aria-labelledby="rc-dash-later">
+          <h2 className="rc-card__label" id="rc-dash-later">Coming later</h2>
           <div className="rc-meta">
             Profiles (phase 8) · Avatar (phase 8) · Trading (phase 9). These are listed rather than
             shown as empty widgets, because nothing is being tracked for them yet.
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 }
@@ -118,8 +118,8 @@ function Overview({ state }: { state: AppState }): React.JSX.Element {
   const exploitEncounters = state.flagged.filter((v) => v.status === 'exploiters').length;
 
   return (
-    <section className="rc-card" style={{ marginBottom: 12 }}>
-      <div className="rc-card__label">Overview</div>
+    <section className="rc-card" aria-labelledby="rc-dash-overview" style={{ marginBottom: 12 }}>
+      <h2 className="rc-card__label" id="rc-dash-overview">Overview</h2>
       <div className="rc-health">
         <Stat label="Servers loaded" value={state.scan.scanned} />
         <Stat label="Clean" value={state.health.clean} />

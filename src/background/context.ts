@@ -7,6 +7,8 @@ import type { ExperienceContext } from '../models/experience';
 import type { ScanOutcome } from '../models/server';
 import type { SmartJoinPlan } from '../models/smartJoin';
 import type { ApiProbeResult } from '../features/devtools/apiProbe';
+import type { JobIdClockReport } from '../features/devtools/jobIdClock';
+import type { PresenceFollowStatus } from '../models/messages';
 import { EMPTY_PRIVATE_SERVERS, type PrivateServerState } from '../models/privateServer';
 import { EMPTY_SEARCH, type SearchState } from '../models/search';
 import { EMPTY_PROFILE, type ProfileState } from '../models/profile';
@@ -36,6 +38,13 @@ import { UnavailableRegionSource } from '../features/smartJoin/regionSource';
 import { SmartJoinService } from '../features/smartJoin/SmartJoinService';
 import { JoinService } from '../features/servers/joinService';
 import { KeyedMutex, ThrottleGate } from '../utils/async';
+
+/**
+ * Roughly ten full server lists. Past this the map is dropped wholesale rather than
+ * pruned: it is a convenience, and an approximate one, so the simple bound is the right
+ * amount of machinery for it.
+ */
+const MAX_TRACKED_SIGHTINGS = 5000;
 
 /**
  * Wires every service together once and owns the state that outlives a single message.
@@ -82,6 +91,18 @@ export class AppContext {
   /** Job ids joined this session, so Join Lowest keeps moving instead of looping. */
   readonly visitedThisSession = new Set<string>();
 
+  /**
+   * When each server was first seen in a scan this session, keyed `placeId:jobId`.
+   *
+   * Deliberately memory, not storage. `ServerReportRepository` records a first sighting
+   * only for servers the user has actually acted on, which keeps storage proportional to
+   * work done - persisting a timestamp for all 500 servers of every game visited would
+   * not. But a server browsed for ten minutes before joining is a server we can honestly
+   * say was already ten minutes old, and that fact costs nothing to keep until the worker
+   * next sleeps.
+   */
+  private readonly firstSightings = new Map<string, number>();
+
   /** The most recent Smart Join plan, kept so the UI can explain the choice. */
   lastPlan: SmartJoinPlan | null = null;
 
@@ -111,6 +132,15 @@ export class AppContext {
 
   /** Results of the last Developer Mode API probe. */
   lastProbe: ApiProbeResult[] | null = null;
+
+  /** What the last Developer Mode job-id inspection found, if one has been run. */
+  lastJobIdClock: JobIdClockReport | null = null;
+
+  /**
+   * What the last presence poll decided, so the panel can show that following is working
+   * without the user having to infer it from a timer that may not have moved yet.
+   */
+  lastPresenceFollow: PresenceFollowStatus | null = null;
 
   /** Live stats per universeId, refreshed on demand rather than polled. */
   readonly statsCache = new Map<string, LiveExperienceStats>();
@@ -179,6 +209,47 @@ export class AppContext {
 
   setScan(outcome: ScanOutcome): void {
     this.scans.set(outcome.placeId, outcome);
+    this.noteSightings(outcome);
+  }
+
+  /**
+   * Remembers the first time each server in a scan was seen, and only the first.
+   *
+   * `scannedAt` rather than `Date.now()`: the sighting happened when the list was
+   * fetched, and a scan that took eight seconds to paginate should not date its servers
+   * from the moment it finished.
+   */
+  private noteSightings(outcome: ScanOutcome): void {
+    // Bounded so a long session across many games cannot grow this without limit. Losing
+    // the oldest entries costs a "first seen" on servers nobody has looked at in a while.
+    if (this.firstSightings.size > MAX_TRACKED_SIGHTINGS) this.firstSightings.clear();
+
+    for (const server of outcome.servers) {
+      const key = `${outcome.placeId}:${server.jobId}`;
+      if (!this.firstSightings.has(key)) this.firstSightings.set(key, outcome.scannedAt);
+    }
+  }
+
+  /** The earliest sighting of one server this session, if we happen to have one. */
+  firstSightingOf(placeId: string, jobId: string): number | undefined {
+    return this.firstSightings.get(`${placeId}:${jobId}`);
+  }
+
+  /**
+   * Real Roblox job ids to inspect, for the Developer Mode job-id check.
+   *
+   * From this session's scans, which is where the largest sample is. The caller falls
+   * back to stored history when the worker has restarted and there is nothing here.
+   */
+  scannedJobIds(limit: number): string[] {
+    const ids: string[] = [];
+    for (const outcome of this.scans.values()) {
+      for (const server of outcome.servers) {
+        ids.push(server.jobId);
+        if (ids.length >= limit) return ids;
+      }
+    }
+    return ids;
   }
 
   clearScan(placeId: string): void {

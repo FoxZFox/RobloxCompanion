@@ -45,15 +45,36 @@ export function OptionalAccess({ origins, label, children }: Props): React.JSX.E
 
   return (
     <div className="rc-field">
-      <span className="rc-field__label">
+      {/*
+        The state is announced as it changes, not just repainted: granting is a decision
+        with consequences, and the only confirmation Chrome gives is this line.
+      */}
+      <span className="rc-field__label" role="status">
         {label} {granted === null ? '' : granted ? '— granted' : '— not granted'}
       </span>
       <span className="rc-header__sub">{children}</span>
       <div className="rc-btn-row">
-        <button type="button" className="rc-btn" disabled={granted === true} onClick={request}>
+        {/*
+          Named with the host they act on. Several of these blocks sit on one page, and
+          four buttons all called "Grant" say nothing about what is being granted to a
+          screen reader listing them.
+        */}
+        <button
+          type="button"
+          className="rc-btn"
+          aria-label={`Grant ${label}`}
+          disabled={granted === true}
+          onClick={request}
+        >
           Grant
         </button>
-        <button type="button" className="rc-btn" disabled={granted !== true} onClick={revoke}>
+        <button
+          type="button"
+          className="rc-btn"
+          aria-label={`Revoke ${label}`}
+          disabled={granted !== true}
+          onClick={revoke}
+        >
           Revoke
         </button>
       </div>

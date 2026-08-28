@@ -90,6 +90,27 @@ error ข้าม message boundary ด้วย `serializeError` / `deserialize
 ทุก mutation คืน `AppState` ก้อนใหม่ → popup กับ side panel เปิดพร้อมกันได้โดยไม่หลุด sync
 (จำเป็นเพราะ decision 2: สอง surface เท่าเทียมกัน)
 
+### ข้อยกเว้นเดียว: `UiQuery` — สำหรับ "ความลับ" เท่านั้น (v0.9.0)
+
+`AppState` ถูก **copy ไปทุก surface** และ **rebuild ทุก message** ซึ่งทำให้มันเป็นที่เก็บ
+ความลับที่แย่ที่สุดเท่าที่จะหาได้ · ลิงก์ private server เป็นความลับ (ใครถือก็เข้าได้)
+จึงมี channel ที่สองที่แคบมาก:
+
+```
+UiRequest  → messageRouter → Result<AppState>      ← ทุกอย่างที่ไม่ใช่ความลับ
+UiQuery    → queryRouter   → Result<payload>       ← ถามครั้งเดียว ตอบครั้งเดียว
+```
+
+| | `UiRequest` | `UiQuery` |
+|---|---|---|
+| ตอบด้วย | `AppState` ทั้งก้อน | payload ของตัวเอง |
+| broadcast `state/changed` | ใช่ (ถ้าเป็น mutation) | **ไม่** — มันไม่เปลี่ยนอะไร |
+| เก็บไว้ไหน | ใน state ของทุก surface | **ไม่เก็บที่ไหนเลย** — UI เอาไปใช้แล้วทิ้ง |
+| ตอนนี้มีกี่ตัว | ทั้งหมด | **1** (`query/privateServerLink`) |
+
+**เกณฑ์ของการเพิ่มตัวที่สอง: ต้องเป็นความลับจริง ๆ** · ถ้าเพิ่มเพราะ "อยากประหยัด round
+trip" เท่ากับจ่ายด้วย guarantee ที่ว่า "สอง surface เห็นไม่ตรงกันไม่ได้" ซึ่งแพงกว่ามาก
+
 ## Storage
 
 | Repository | key prefix | เก็บอะไร |

@@ -3,6 +3,7 @@ import type {
   PrivateServer,
   PrivateServerState,
 } from '../../models/privateServer';
+import type { PopulationPreference } from '../../models/smartJoin';
 
 /**
  * Shaping the private-server list, kept pure so it can be tested without a browser.
@@ -150,4 +151,64 @@ export function parseJoinable(
       maxPlayers: typeof raw.maxPlayers === 'number' ? raw.maxPlayers : null,
     },
   };
+}
+
+/**
+ * Which private server Smart Join should take when the user prefers one (§29).
+ *
+ * Pure, so the rule can be argued with in a test rather than in a browser. Three things
+ * it will not do:
+ *
+ *   - pick a server that is full. Roblox would refuse the join, and "Smart" Join sending
+ *     someone into a refusal is worse than falling through to a public server.
+ *   - treat an unknown player count as an empty one. Roblox does not always report
+ *     `playing`, and a server that might be packed must not win a "prefer the emptiest"
+ *     comparison by being unmeasured - it sorts last among the candidates instead.
+ *   - reorder on anything but the user's own population preference. The list is theirs;
+ *     inventing a quality signal for servers they own would be inventing data.
+ */
+export function choosePrivateServer(
+  servers: readonly JoinablePrivateServer[],
+  preference: PopulationPreference,
+): JoinablePrivateServer | null {
+  const candidates = servers.filter((server) => !isFull(server));
+  if (candidates.length === 0) return null;
+
+  const ranked = [...candidates].sort((a, b) => {
+    const left = distance(a, preference);
+    const right = distance(b, preference);
+    if (left !== right) return left - right;
+    // Deterministic ordering so the same list always yields the same choice.
+    return a.name.localeCompare(b.name);
+  });
+
+  return ranked[0] ?? null;
+}
+
+function isFull(server: JoinablePrivateServer): boolean {
+  if (server.playing === null || server.maxPlayers === null) return false;
+  return server.maxPlayers > 0 && server.playing >= server.maxPlayers;
+}
+
+/**
+ * How far a server is from what the user asked for, lower being better.
+ *
+ * An unmeasured server gets `Infinity` rather than a middling number: it is not a
+ * mediocre match, it is an unknown one, and the only honest place for it is behind every
+ * server we can actually compare.
+ */
+function distance(server: JoinablePrivateServer, preference: PopulationPreference): number {
+  if (server.playing === null) return Number.POSITIVE_INFINITY;
+
+  switch (preference) {
+    case 'lowest':
+      return server.playing;
+    case 'highest':
+      return -server.playing;
+    case 'balanced': {
+      // Without a capacity there is no midpoint to be near, so this one cannot be judged.
+      if (server.maxPlayers === null || server.maxPlayers <= 0) return Number.POSITIVE_INFINITY;
+      return Math.abs(server.playing - server.maxPlayers / 2);
+    }
+  }
 }

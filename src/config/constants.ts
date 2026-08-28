@@ -51,6 +51,19 @@ export const PRUNE_ALARM_NAME = 'rc:prune';
 export const PRUNE_ALARM_MINUTES = 360;
 
 /**
+ * Following the signed-in user's own Roblox presence, so a session that began outside the
+ * extension is still tracked (and one that ends is closed at the right moment).
+ *
+ * Two rates rather than one: while a session is running the answer changes meaningfully
+ * minute to minute, and while nothing is running it almost never does. Chrome will not
+ * run an alarm faster than once a minute anyway, and Roblox's presence lags by tens of
+ * seconds, so a tighter poll would buy imprecision-shaped requests and nothing else.
+ */
+export const PRESENCE_ALARM_NAME = 'rc:presence';
+export const PRESENCE_POLL_ACTIVE_MINUTES = 1;
+export const PRESENCE_POLL_IDLE_MINUTES = 5;
+
+/**
  * Bumped whenever a feature ships switched on by default, so the migration can unpin its
  * flag - a settings object written before the feature existed would otherwise keep it off
  * forever. 4 was Themes, 5 Private Servers, 6 Quick Search, 7 Profiles. See FEATURES_INTRODUCED_AT.

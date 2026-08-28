@@ -55,6 +55,15 @@ export interface SmartJoinSettings {
    * tested, but nothing can populate regions today - see regionSource.ts.
    */
   preferredRegions: string[];
+  /**
+   * Take a private server you can enter here in preference to any public one (§29).
+   *
+   * Off by default because it changes where the user lands, and that is not a default
+   * anyone should discover by surprise. On, it costs one request instead of a whole
+   * scan: the private list is asked for and, if it has something joinable, no public
+   * page is fetched at all.
+   */
+  preferOwnPrivateServer: boolean;
 }
 
 export const DEFAULT_SMART_JOIN: SmartJoinSettings = {
@@ -68,6 +77,7 @@ export const DEFAULT_SMART_JOIN: SmartJoinSettings = {
     region: 25,
   },
   preferredRegions: [],
+  preferOwnPrivateServer: false,
 };
 
 export interface Region {
@@ -107,6 +117,25 @@ export interface RegionResult {
   message?: string;
 }
 
+/**
+ * A private server Smart Join took instead of scoring public ones (§29).
+ *
+ * It carries no score and no breakdown, because none was computed: the preference is a
+ * decision the user already made, not a signal weighed against others. Explain Why says
+ * that in those words rather than inventing points to justify it after the fact.
+ *
+ * There is deliberately no access code here. The plan travels in AppState, and a code
+ * that grants entry to a private server never does (see models/privateServer.ts).
+ */
+export interface PrivatePick {
+  vipServerId: number;
+  name: string;
+  playing: number | null;
+  maxPlayers: number | null;
+  /** One line for Explain Why, in the same voice as a ScoreComponent reason. */
+  reason: string;
+}
+
 /** What Smart Join decided, including everything needed to explain it. */
 export interface SmartJoinPlan {
   /** Null when nothing qualified. */
@@ -119,6 +148,13 @@ export interface SmartJoinPlan {
   capped: boolean;
   /** Regions resolved this run. Always 0 until a region source exists. */
   regionsProbed: number;
+  /** Set when a private server was taken instead of scoring public ones. */
+  privatePick: PrivatePick | null;
+  /**
+   * Why there was no private pick, when the preference is switched on. Null when it is
+   * off, so the panel can stay silent about a feature the user is not using.
+   */
+  privateNote: string | null;
 }
 
 /**
@@ -130,4 +166,5 @@ export interface SmartJoinPatch {
   population?: PopulationPreference;
   weights?: Partial<SmartJoinWeights>;
   preferredRegions?: string[];
+  preferOwnPrivateServer?: boolean;
 }
