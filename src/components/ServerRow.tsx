@@ -60,6 +60,21 @@ export function ServerRow({
         </span>
       </div>
 
+      {/*
+        Shown only when Roblox positively placed someone here. There is deliberately no
+        opposite badge: the absence of this mark says nothing, because Roblox withholds
+        most people's location, and a "clear" tick would be read as a check that happened.
+      */}
+      {view.blacklisted?.length ? (
+        <div className="rc-banner" style={{ marginBottom: 6 }}>
+          <span>
+            ⚠ {view.blacklisted.length} blacklisted player
+            {view.blacklisted.length === 1 ? '' : 's'} confirmed in this server by Roblox
+            presence.
+          </span>
+        </div>
+      ) : null}
+
       <div className="rc-meta">
         {/*
           Worded around the server's own players on purpose. This is not your latency and

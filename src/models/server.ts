@@ -96,6 +96,13 @@ export interface ServerView {
   lastJoinedAt?: number;
   reportedAt?: number;
   note?: string;
+  /**
+   * Blacklisted user ids Roblox positively placed in this server (phase 5).
+   *
+   * Absent never means clear. It means nobody was placed here by a disclosure we actually
+   * received, and Roblox withholds a location for most people by default.
+   */
+  blacklisted?: number[];
 }
 
 export interface LastJoined {

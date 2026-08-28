@@ -111,6 +111,40 @@ export class JoinService {
   }
 
   /**
+   * Joins a private server by access code (phase 6).
+   *
+   * Deliberately has no fallback chain. The public strategies degrade to a start URL and
+   * then to a deep link, both of which take a job id; neither can carry an access code, so
+   * a fallback here would silently drop the user into a public server while telling them
+   * they had joined a private one. Failing outright is the honest outcome.
+   *
+   * The code is passed straight through to the launcher and is not stored anywhere.
+   */
+  async joinPrivate(placeId: string, accessCode: string): Promise<JoinReport> {
+    const tab = await this.tabs.ensureTab(placeId, true);
+    if (tab.id === undefined) throw new AppError('NO_ROBLOX_TAB');
+    await this.tabs.focus(tab.id);
+
+    await this.assertLoggedIn(tab.id);
+
+    const result = await this.tabs.send<{ ok: boolean; reason?: string } | undefined>(tab.id, {
+      type: 'cs/join',
+      placeId,
+      // Unused by the private path, but the message shape is shared with public joins.
+      jobId: '',
+      strategy: 'gameLauncher',
+      accessCode,
+    });
+
+    if (!result?.ok) {
+      throw new AppError(
+        result?.reason === 'no-private-launcher' ? 'LAUNCHER_MISSING' : 'JOIN_FAILED',
+      );
+    }
+    return { strategy: 'gameLauncher', unreliable: false };
+  }
+
+  /**
    * Roblox's launcher opens a login modal and silently gives up when signed out.
    * Detecting that first turns a mystifying no-op into a message the user can act on.
    */

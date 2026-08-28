@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react';
+import { STORAGE_SCHEMA_VERSION } from '../config/constants';
 import type { AppState, UiRequest } from '../models/messages';
 import type { ApiProbeResult } from '../features/devtools/apiProbe';
+import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
+import { OptionalAccess } from './OptionalAccess';
+
+const PROBE_ORIGINS = Object.values(OPTIONAL_ORIGINS);
 
 interface Props {
   state: AppState;
@@ -10,6 +15,7 @@ interface Props {
 
 const VERDICT_ICON: Record<ApiProbeResult['verdict'], string> = {
   ok: '✓',
+  empty: '○',
   refused: '✗',
   failed: '!',
   skipped: '–',
@@ -28,7 +34,12 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
    */
   const exportAll = (): void => {
     const bundle = {
-      schemaVersion: 1,
+      /*
+       * Stamped with the version that actually wrote it. This said 1 until v0.3.0, which
+       * meant an import refused every backup this button had ever produced: the file
+       * claimed a schema three versions older than its contents.
+       */
+      schemaVersion: STORAGE_SCHEMA_VERSION,
       exportedAt: Date.now(),
       settings: state.settings,
       customFlags: state.allCustomFlags,
@@ -105,6 +116,12 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
             top of it. Every probe is a plain read — nothing is created, bought or joined.
           </p>
 
+          <OptionalAccess origins={PROBE_ORIGINS} label="Optional access for the probe">
+            Four probes read from hosts this extension does not otherwise touch: presence
+            (which server someone is in), friends, avatar and trades. Each reads your own
+            account, and each answers whether a blocked phase is possible at all.
+          </OptionalAccess>
+
           <button
             type="button"
             className="rc-btn rc-btn--primary"
@@ -132,6 +149,14 @@ export function DataSettings({ state, busy, send }: Props): React.JSX.Element {
                     {result.documentedAs === 'docs-only' && result.verdict === 'ok' ? (
                       <div className="rc-probe__mismatch">
                         Works — update the API map to verified-live
+                      </div>
+                    ) : null}
+                    {result.verdict === 'empty' ? (
+                      <div className="rc-probe__detail">
+                        Not enough to go on: it responded, but an empty list shows no field
+                        names and no types. Either there is genuinely nothing there, or the
+                        parameters are wrong — the map stays unchanged until one of those is
+                        established.
                       </div>
                     ) : null}
                     {result.documentedAs === 'verified-live' && result.verdict !== 'ok' ? (

@@ -6,6 +6,11 @@ import { BlacklistTab, HistoryTab, ServersTab } from '../../components/tabs';
 import { FlagsPane } from './FlagsPane';
 import { PlaytimePane } from '../../components/PlaytimePane';
 import { QuickActions } from './QuickActions';
+import { PrivateServersPane } from '../../components/PrivateServersPane';
+import { SearchPane } from '../../components/SearchPane';
+import { ProfilePane } from '../../components/ProfilePane';
+import { parseUserId } from '../../utils/robloxUrl';
+import { ThemePane } from './ThemePane';
 
 export interface ToolProps {
   state: AppState;
@@ -82,6 +87,39 @@ export const TOOLS: readonly ToolDefinition[] = [
     label: 'Flags',
     title: 'Your own flags',
     render: (props) => <FlagsPane {...props} />,
+  },
+  {
+    id: 'profile',
+    icon: '👤',
+    label: 'Profile',
+    title: 'Mutual friends',
+    flag: 'profiles',
+    render: (props) => <ProfilePane {...props} userId={parseUserId(window.location.href)} />,
+  },
+  {
+    id: 'search',
+    icon: '🔍',
+    label: 'Search',
+    title: 'Find an experience',
+    flag: 'quickSearch',
+    render: (props) => <SearchPane {...props} />,
+  },
+  {
+    id: 'private',
+    icon: '\u{1F512}',
+    label: 'Private',
+    title: 'Private servers you own',
+    flag: 'privateServers',
+    badge: (state) => state.privateServers.here.length,
+    render: (props) => <PrivateServersPane {...props} />,
+  },
+  {
+    id: 'themes',
+    icon: '\u{1F3A8}',
+    label: 'Theme',
+    title: 'Theme',
+    flag: 'themes',
+    render: (props) => <ThemePane {...props} />,
   },
 ];
 

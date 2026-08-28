@@ -426,4 +426,157 @@ export const SHARED_STYLES = `.rc-root {
   color: var(--rc-bugged);
   font-weight: 600;
 }
+
+/* -------------------------------------------------------------- Themes */
+
+.rc-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.rc-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-sm);
+  background: var(--rc-bg);
+  color: var(--rc-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rc-swatch:hover:not(:disabled) { border-color: var(--rc-border-strong); }
+.rc-swatch:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: 1px; }
+.rc-swatch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rc-swatch--on {
+  border-color: var(--rc-accent);
+  box-shadow: inset 0 0 0 1px var(--rc-accent);
+}
+
+.rc-swatch__name { font-size: 11px; font-weight: 600; }
+.rc-swatch__note { color: var(--rc-text-faint); font-size: 10px; }
+
+/*
+ * A real preview rather than a colour chip: the bar, the two text lines and the pill are
+ * painted with the derived tokens, so a palette that derives badly looks wrong here
+ * before it is ever applied to a page.
+ */
+.rc-swatch__preview {
+  position: relative;
+  height: 40px;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-sm);
+}
+
+.rc-swatch__preview--off {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rc-bg-subtle);
+  color: var(--rc-text-faint);
+  font-size: 14px;
+}
+
+.rc-swatch__bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 9px;
+}
+
+.rc-swatch__line {
+  position: absolute;
+  left: 5px;
+  top: 15px;
+  width: 60%;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.rc-swatch__line--short { top: 22px; width: 38%; }
+
+.rc-swatch__pill {
+  position: absolute;
+  left: 5px;
+  bottom: 5px;
+  width: 22px;
+  height: 7px;
+  border-radius: 4px;
+}
+
+.rc-colours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rc-colour {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rc-colour__input {
+  width: 52px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.rc-colour__hex {
+  color: var(--rc-text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+}
+
+.rc-surfaces {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-surface {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rc-border);
+  font-size: 11px;
+}
+
+.rc-surface:last-child { border-bottom: none; }
+.rc-surface__count { color: var(--rc-text-muted); }
+.rc-surface--none .rc-surface__label { color: var(--rc-text-faint); }
+.rc-surface--none .rc-surface__count { color: var(--rc-bugged); }
+
+/* -------------------------------------------------------------- Accessibility */
+
+/*
+ * Present to a screen reader, absent to everything else.
+ *
+ * Used where meaning is carried by colour or position alone - the attention dot on the
+ * tool rail is the case that prompted this - so the same fact is available to someone
+ * who cannot see the dot. Not \`display: none\`, which would hide it from both.
+ */
+.rc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 `;

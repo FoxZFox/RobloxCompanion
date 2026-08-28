@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STORAGE_SCHEMA_VERSION } from '../../config/constants';
+import { DEFAULT_SETTINGS } from '../../models/settings';
 import { BackupService } from './BackupService';
 import { CustomFlagRepository } from './CustomFlagRepository';
 import { PlayerBlacklistRepository } from './PlayerBlacklistRepository';
@@ -142,5 +143,39 @@ describe('BackupService.parse', () => {
 
   it('accepts a well-formed bundle', () => {
     expect(BackupService.parse('{"schemaVersion":7}').schemaVersion).toBe(7);
+  });
+});
+
+describe('BackupService import across schema versions', () => {
+  it('accepts a bundle from an older version', async () => {
+    // A backup taken before a schema bump is still readable - every bump so far has only
+    // added keys. Refusing it would mean each bump silently voided the backups people
+    // had already taken, which is the one thing a backup must not do.
+    const { service, settings } = build();
+    await service.importBundle({
+      schemaVersion: 3,
+      exportedAt: 0,
+      settings: { ...DEFAULT_SETTINGS, surface: 'popup' },
+    });
+
+    expect((await settings.get()).surface).toBe('popup');
+  });
+
+  it('does not let an old bundle pin a feature that did not exist when it was taken', async () => {
+    const { service, settings } = build();
+    await service.importBundle({
+      schemaVersion: 3,
+      exportedAt: 0,
+      settings: {
+        ...DEFAULT_SETTINGS,
+        features: { ...DEFAULT_SETTINGS.features, themes: false, servers: false },
+      },
+    });
+
+    const imported = await settings.get();
+    // Themes arrived at v4, so the `false` in a v3 bundle was a default, not a decision.
+    expect(imported.features.themes).toBe(true);
+    // The server browser existed at v3 with a working toggle, so that one stands.
+    expect(imported.features.servers).toBe(false);
   });
 });

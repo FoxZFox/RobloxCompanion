@@ -322,3 +322,100 @@ describe('feature-flag migration', () => {
     expect((await repo.get()).features.playtime).toBe(true);
   });
 });
+
+describe('themes shipped switched on (schema v4)', () => {
+  it('unpins the themes flag for someone who was already on v3', async () => {
+    // The whole reason the schema was bumped. A v3 settings object carries themes:false,
+    // which was the default while phase 8 was unbuilt and never a choice anyone made -
+    // and playtime proved that leaving it pinned means nobody ever finds the feature.
+    const storage = new MemoryStorageArea();
+    await storage.set({
+      'rc:v': 3,
+      'rc:settings': { features: { ...DEFAULT_SETTINGS.features, themes: false } },
+    });
+
+    const repo = new SettingsRepository(storage);
+    await repo.init();
+
+    expect((await repo.get()).features.themes).toBe(true);
+  });
+
+  it('leaves the page alone until a theme is actually chosen', async () => {
+    const repo = new SettingsRepository(new MemoryStorageArea());
+    await repo.init();
+    const settings = await repo.get();
+
+    expect(settings.features.themes).toBe(true);
+    expect(settings.theme.preset).toBe('off');
+  });
+
+  it('keeps the three custom colours independent of each other', async () => {
+    const repo = new SettingsRepository(new MemoryStorageArea());
+    await repo.set({ theme: { custom: { accent: '#ff0000' } } });
+    const settings = await repo.set({ theme: { custom: { background: '#000000' } } });
+
+    expect(settings.theme.custom.accent).toBe('#ff0000');
+    expect(settings.theme.custom.background).toBe('#000000');
+    expect(settings.theme.custom.text).toBe(DEFAULT_SETTINGS.theme.custom.text);
+  });
+});
+
+describe('private servers shipped (schema v5)', () => {
+  it('unpins the privateServers flag for someone already on v4', async () => {
+    const storage = new MemoryStorageArea();
+    await storage.set({
+      'rc:v': 4,
+      'rc:settings': { features: { ...DEFAULT_SETTINGS.features, privateServers: false } },
+    });
+
+    const repo = new SettingsRepository(storage);
+    await repo.init();
+
+    expect((await repo.get()).features.privateServers).toBe(true);
+  });
+
+  it('still leaves themes alone for someone already on v4', async () => {
+    // Themes arrived at v4, so a v4 user could genuinely have switched it off. Only the
+    // flags introduced *after* the stored version get unpinned.
+    const storage = new MemoryStorageArea();
+    await storage.set({
+      'rc:v': 4,
+      'rc:settings': { features: { ...DEFAULT_SETTINGS.features, themes: false } },
+    });
+
+    const repo = new SettingsRepository(storage);
+    await repo.init();
+
+    expect((await repo.get()).features.themes).toBe(false);
+  });
+});
+
+describe('quick search shipped (schema v6)', () => {
+  it('unpins the quickSearch flag for someone already on v5', async () => {
+    const storage = new MemoryStorageArea();
+    await storage.set({
+      'rc:v': 5,
+      'rc:settings': { features: { ...DEFAULT_SETTINGS.features, quickSearch: false } },
+    });
+
+    const repo = new SettingsRepository(storage);
+    await repo.init();
+
+    expect((await repo.get()).features.quickSearch).toBe(true);
+  });
+});
+
+describe('profiles shipped (schema v7)', () => {
+  it('unpins the profiles flag for someone already on v6', async () => {
+    const storage = new MemoryStorageArea();
+    await storage.set({
+      'rc:v': 6,
+      'rc:settings': { features: { ...DEFAULT_SETTINGS.features, profiles: false } },
+    });
+
+    const repo = new SettingsRepository(storage);
+    await repo.init();
+
+    expect((await repo.get()).features.profiles).toBe(true);
+  });
+});

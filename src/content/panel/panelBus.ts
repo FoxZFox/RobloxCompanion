@@ -9,14 +9,24 @@ export const PANEL_EVENT = 'roblox-companion:panel';
 
 export type PanelCommand = 'open' | 'close' | 'toggle';
 
-export function requestPanel(command: PanelCommand): void {
-  window.dispatchEvent(new CustomEvent(PANEL_EVENT, { detail: command }));
+/** Which tool to show on arrival, so a button can open the pane it is about. */
+export interface PanelRequest {
+  command: PanelCommand;
+  tool?: string;
 }
 
-export function onPanelRequest(handler: (command: PanelCommand) => void): () => void {
+export function requestPanel(command: PanelCommand, tool?: string): void {
+  const detail: PanelRequest = tool ? { command, tool } : { command };
+  window.dispatchEvent(new CustomEvent(PANEL_EVENT, { detail }));
+}
+
+export function onPanelRequest(handler: (command: PanelCommand, tool?: string) => void): () => void {
   const listener = (event: Event): void => {
-    const command = (event as CustomEvent<PanelCommand>).detail;
-    if (command === 'open' || command === 'close' || command === 'toggle') handler(command);
+    const detail = (event as CustomEvent<PanelRequest>).detail;
+    const command = detail?.command;
+    if (command === 'open' || command === 'close' || command === 'toggle') {
+      handler(command, detail.tool);
+    }
   };
   window.addEventListener(PANEL_EVENT, listener);
   return () => window.removeEventListener(PANEL_EVENT, listener);

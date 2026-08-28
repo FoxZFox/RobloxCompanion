@@ -1,4 +1,5 @@
 import { STORAGE_SCHEMA_VERSION } from '../../config/constants';
+import { unpinFeaturesIntroducedAfter } from '../../config/features';
 import type { BlacklistedPlayer } from '../../models/blacklist';
 import type { CustomFlag } from '../../models/flags';
 import type { HistoryEntry } from '../../models/messages';
@@ -77,7 +78,16 @@ export class BackupService {
   }
 
   async importBundle(bundle: BackupBundle): Promise<ImportSummary> {
-    if (bundle.schemaVersion !== STORAGE_SCHEMA_VERSION) {
+    /*
+     * Older bundles are welcome; newer ones are refused.
+     *
+     * A backup taken before a schema bump is still perfectly readable - every version so
+     * far has only added keys, and anything missing resolves to its default. Rejecting
+     * those would mean every bump silently invalidated the backups people had already
+     * taken, which is the opposite of what a backup is for. A bundle from a later build
+     * is a different matter: we cannot know what it means, so we do not guess.
+     */
+    if (bundle.schemaVersion > STORAGE_SCHEMA_VERSION) {
       throw new Error(
         `Backup is schema version ${bundle.schemaVersion}; this build reads version ${STORAGE_SCHEMA_VERSION}`,
       );
@@ -91,7 +101,14 @@ export class BackupService {
     };
 
     if (bundle.settings) {
-      await this.settings.set(bundle.settings);
+      /*
+       * A bundle carries a fully resolved Settings object, so every feature flag in it
+       * looks like a deliberate choice - including the ones that did not exist when it
+       * was taken and were merely off by default. Importing those verbatim would pin
+       * them off forever, which is precisely how playtime shipped invisible.
+       */
+      const features = unpinFeaturesIntroducedAfter(bundle.settings.features, bundle.schemaVersion);
+      await this.settings.set({ ...bundle.settings, features });
       summary.settings = true;
     }
 

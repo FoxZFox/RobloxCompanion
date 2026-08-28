@@ -22,13 +22,39 @@ GET https://games.roblox.com/v1/games/{placeId}/servers/Public
 **สถานะ:** `verified-live`
 
 ```jsonc
+// ยิงจริง 28 ส.ค. 2026 — ของจริงมี playerTokens ด้วย
 {
   "data": [
-    { "id": "a73d...991f", "maxPlayers": 7, "playing": 2, "fps": 59.7, "ping": 43 }
+    {
+      "id": "d232d8f0-…-f6b44f54a7d1",
+      "maxPlayers": 8,
+      "playing": 1,
+      "playerTokens": ["09E2E09D0C6B472CEE437A067FC5692B"],  // ⚠️ ไม่ว่าง (ดูล่าง)
+      "players": [],                                          // ว่างเสมอ
+      "fps": 57.88,
+      "ping": 30
+    }
   ],
   "nextPageCursor": "AQAAAB..." // null = จบ
 }
 ```
+
+### ⚠️ แก้ข้อมูลที่เคยจดผิด: `playerTokens` **ไม่ได้ว่างเปล่า**
+
+เอกสารนี้ (และ `README` / `HANDOFF`) เคยเขียนว่า `playerTokens` ว่างเสมอ — **ผิด**
+ยิงจริง 28 ส.ค. 2026 ได้ token กลับมา 1 ตัวต่อผู้เล่น 1 คน (`playing: 1` → 1 token)
+ที่ว่างจริงคือ `players` ซึ่งเป็นคนละ field กัน
+
+**แล้ว token เอาไปทำอะไรได้?** มันไม่ใช่ userId และ decode ไม่ได้ · วิธีเดียวที่จะเชื่อมมันกับ
+ตัวคนได้คือ ขอ thumbnail ด้วย `token` แล้วขอ thumbnail ของ userId ที่เรารู้จัก
+มาเทียบ URL ว่าเป็นรูปเดียวกันไหม (thumbnail fingerprinting)
+
+**ซึ่ง §13 ห้ามไว้ชัดเจน** — Roblox ตั้งใจไม่บอกว่าใครอยู่เซิร์ฟไหน การเอา token ไปไล่เทียบ
+คือการ**ย้อนสิ่งที่เขาตั้งใจปิด** ไม่ใช่การอ่านสิ่งที่เขาเปิด
+
+→ **สถานะจึงไม่เปลี่ยน:** blacklist ยังตอบ `Membership unknown` เหมือนเดิม
+แต่เหตุผลเปลี่ยนจาก **"ทำไม่ได้"** เป็น **"ทำได้แต่เราเลือกไม่ทำ"** ซึ่งต้องเขียนให้ตรง
+ห้ามอ้างข้อจำกัดทางเทคนิคที่ไม่มีอยู่จริงเป็นข้ออ้าง (§55)
 
 | ข้อเท็จจริงที่วัดมาแล้ว | ผลต่อการออกแบบ |
 |---|---|
@@ -37,7 +63,7 @@ GET https://games.roblox.com/v1/games/{placeId}/servers/Public
 | `sortOrder=Asc` เรียงตาม player count จริงฝั่ง server | "lowest first" ไม่ต้อง sort ในเครื่อง |
 | cursor ผูกกับทั้ง `serverType` และ `limit` | ห้ามเปลี่ยนสองค่านี้กลางคัน pagination |
 | **pagination cap ~150–500 เซิร์ฟ** แล้ว `nextPageCursor` เป็น `null` เอง | UI เขียน "จาก N เซิร์ฟที่แสดงได้" ไม่ใช่ "ทั้งหมด" (§33) |
-| **`playerTokens` ว่างเสมอ** | ไม่มีทางรู้ว่าใครอยู่ในเซิร์ฟ → blacklist ตอบ `unknown` (§13) |
+| **`playerTokens` มีมาจริง** (แก้ 28 ส.ค. 2026) | เชื่อมกับตัวคนได้ทางเดียวคือ fingerprint thumbnail ซึ่ง §13 ห้าม → blacklist ยังตอบ `unknown` แต่เพราะ**นโยบาย** ไม่ใช่เพราะทำไม่ได้ |
 | **`ping` / `fps` = ค่าเฉลี่ยฝั่ง server** ไม่ใช่ latency ของผู้ใช้ | label เป็น `avg 43ms` เท่านั้น |
 | ไม่มี field uptime / created / version | server age ใช้ `firstSeenAt` ของเราเองเป็น proxy |
 | ไม่มี API เช็ค JobId เดี่ยว | ต้อง scan แล้ว match เอง → `computeLiveness` |
@@ -122,17 +148,95 @@ User-Agent: Roblox/WinInet     ← ตัวปัญหา
 | UI | ถอด toggle + optional permission ออกหมด เหลือคำอธิบายใน Settings ที่เดียว |
 | Smart Join | ไม่กระทบ — signal ที่เหลือ 4 ตัวทำงานครบและไม่ยิง request เพิ่ม |
 
-## 4. Private Servers (Phase 6) — ทั้งหมดยัง `docs-only`
+## 4. Private Servers (Phase 6) — **2 ตัวหลัก verified แล้ว**
 
-| Endpoint | Method | คืนอะไร |
-|---|---|---|
-| `/v1/private-servers/enabled-in-universe/{universeId}` | GET | `{ privateServersEnabled: bool }` |
-| `/v1/vip-servers/my-private-servers` | GET | `data[]` = `{active, universeId, placeId, name, ownerId, ownerName}` |
-| `/v1/games/vip-servers/{universeId}` | POST | `{id, vipServerId, accessCode, name, ...}` |
-| `/v1/vip-servers/{id}` | GET / PATCH | `{id, name, joinCode, active, subscription, link, accessCode}` |
-| `/v1/games/{placeId}/private-servers` | GET | private server ของ place นั้น |
+| Endpoint | Method | สถานะ | คืนอะไร |
+|---|---|---|---|
+| `/v1/private-servers/enabled-in-universe/{universeId}` | GET | ✅ **`verified-live`** 28 ส.ค. 2026 | `{ privateServersEnabled: true }` |
+| `/v1/vip-servers/my-private-servers` | GET | ✅ **`verified-live`** 28 ส.ค. 2026 | ดูข้างล่าง |
+| `/v1/vip-servers/{id}` | GET | ✅ **`verified-live`** 28 ส.ค. 2026 | **`joinCode: null`** ← คำตอบสำคัญ (ดูล่าง) |
+| `/v1/vip-servers/{id}` | PATCH | ⛔ ไม่แตะ | PATCH **regenerate link ได้** → ลิงก์ที่ผู้ใช้แจกเพื่อนไปแล้วจะใช้ไม่ได้ |
+| `/v1/games/vip-servers/{universeId}` | POST | `docs-only` | สร้าง = ใช้ Robux → §8 ห้าม auto |
+| `/v1/games/{placeId}/private-servers` | GET | ✅ **`verified-live`** 28 ส.ค. 2026 | **มี `accessCode`!** → join ได้โดยไม่ต้องเขียน |
 
 base = `https://games.roblox.com`, auth = cookie
+
+**response จริงของ `my-private-servers`** (28 ส.ค. 2026 — ค่าที่ระบุตัวตนถูกตัดออก):
+
+```jsonc
+{
+  "active": true,
+  "universeId": 2647834887,
+  "placeId": 6924758805,
+  "name": "…",
+  "ownerId": 0, "ownerName": "…",
+  "priceInRobux": null,                        // null = ไม่มีค่าใช้จ่ายต่ออายุ
+  "privateServerId": 1381799380,
+  "expirationDate": "2124-04-22T21:21:15.197Z",
+  "willRenew": false,
+  "universeName": "…",
+  "purchaseScheduleId": null,
+  "totalDiscountAmountInRobux": null,
+  "metadata": null
+}
+```
+
+> **สิ่งที่ไม่มีใน response นี้คือ `accessCode` / `link`** → รายการนี้อย่างเดียว **join ไม่ได้**
+
+### `GET /v1/vip-servers/{id}` — probe แล้ว 28 ส.ค. 2026 · **`joinCode: null`**
+
+```jsonc
+{
+  "id": 1381799380,
+  "name": "…",
+  "game": { "id": 2647834887, "name": "…", "rootPlace": { "id": 6924758805, "name": "…" } },
+  "joinCode": null,                 // ← field มีอยู่ แต่เป็น null
+  "active": true,
+  "subscription": {
+    "active": false, "expired": false, "expirationDate": "2124-04-22T21:21:15.197Z",
+    "price": 0, "canRenew": false, "hasInsufficientFunds": false,
+    "hasRecurringProfile": false, "hasPriceChanged": false, "purchaseScheduleId": null
+  }
+}
+```
+
+response นี้ละเอียดกว่า list มาก (มี `subscription` ครบ) แต่ **ไม่คืน join code**
+
+**หมายเหตุที่ต้องซื่อสัตย์:** ตัวอย่างนี้มาจาก server เดียว → แยกไม่ออกระหว่าง
+"Roblox ไม่คืน `joinCode` ทาง GET เลย" กับ "server ตัวนี้ยังไม่เคยสร้างลิงก์" · แต่**ผลลัพธ์
+เท่ากัน**: จะได้ code ต้อง **เขียน** (PATCH `{newJoinCode:true}`) ซึ่งอาจล้างลิงก์เดิมที่ผู้ใช้
+แจกเพื่อนไปแล้ว → **เราไม่ยิง** (§8 — ทุก state change ต้องมาจากคำสั่งของผู้ใช้)
+
+### `GET /v1/games/{placeId}/private-servers` — **มี `accessCode`** ✅ (28 ส.ค. 2026)
+
+ถามคนละคำถามกับตัวบน ("อะไรที่ join ได้ที่ place นี้" ไม่ใช่ "server ที่ฉันเป็นเจ้าของหน้าตายังไง")
+แล้วคำตอบต่างกันคนละเรื่อง:
+
+```jsonc
+{
+  "id": null,                    // jobId — null เพราะเซิร์ฟยังไม่รัน
+  "maxPlayers": 12, "playing": 0, "fps": 0, "ping": 0,
+  "playerTokens": [], "players": [],
+  "name": "…'s server",
+  "vipServerId": 4155694220,
+  "accessCode": "dbc04db0-…",    // ← ตัวนี้แหละที่ต้องการ
+  "owner": { "id": …, "name": "…", "displayName": "…", "hasVerifiedBadge": false }
+}
+```
+
+→ **Phase 6 join ทำได้แล้วโดยไม่ต้องยิง write อะไรเลย** · เรียก
+`Roblox.GameLauncher.joinPrivateGame(placeId, accessCode)` ใน MAIN world (ตัวเดียวกับที่
+หน้า private server ของ Roblox เรียกเอง)
+
+**`accessCode` เป็นความลับ — กติกาในโค้ด:**
+
+- เก็บใน **service worker memory เท่านั้น** (`context.privateServerCodes`)
+  ไม่เข้า `AppState` (ซึ่งทุก surface ถือ copy) และ**ไม่ลง storage** เด็ดขาด
+- UI join ด้วย **`vipServerId`** แล้ว SW แปลงกลับเป็น code ตอนจะ join จริง
+- `parseJoinable()` แยก code ออกจาก view model ตั้งแต่ parse — มี test บังคับว่า
+  serialize view model แล้วต้องไม่เจอ code
+- **ไม่มี fallback chain** สำหรับ private join · start URL กับ deeplink รับได้แต่ jobId
+  ถ้าปล่อยให้ fall through ผู้ใช้จะโดนโยนเข้า public server ทั้งที่บอกว่า join private → **fail ตรง ๆ ดีกว่า**
 
 ⚠️ **ราคาต้องอ่านต่อผู้ใช้ ไม่ใช่ต่อเกม** — ตั้งแต่ 30 เม.ย. 2026 Roblox ให้ Premium/Plus
 subscriber สร้าง private server ฟรีแม้เกมตั้งราคาไว้ ดังนั้น logic §9 ("price = 0 → สร้างได้เลย")
@@ -146,23 +250,94 @@ subscriber สร้าง private server ฟรีแม้เกมตั้�
 
 | Endpoint | Method | สถานะ | ใช้ทำอะไร |
 |---|---|---|---|
-| `users.roblox.com/v1/usernames/users` | POST | `docs-only` | username → userId (blacklist §12) |
+| `users.roblox.com/v1/usernames/users` | POST | ✅ **`verified-live`** | username → userId (blacklist §12) · **ผ่าน CSRF จริง** |
+| `users.roblox.com/v1/users/authenticated` | GET | ✅ **`verified-live`** | `{id, name, displayName}` ของผู้ใช้เอง |
 | `users.roblox.com/v1/users/{userId}` | GET | `docs-only` | ชื่อ/displayName ปัจจุบัน |
 | `thumbnails.roblox.com/v1/users/avatar-headshot` | GET | `planned` | รูป avatar ใน blacklist page |
-| `presence.roblox.com/v1/presence/users` | POST | `docs-only` | ⚠️ คืน `gameId` (= jobId) **เฉพาะเมื่อ privacy ของเป้าหมายอนุญาต** ส่วนใหญ่เป็น `null` |
+| `presence.roblox.com/v1/presence/users` | POST | ✅ **`verified-live`** (ดูล่าง) | `gameId` = jobId |
 | `presence.roblox.com/v1/presence/last-online` | POST | `planned` | Last online (§23) |
 
-**ข้อจำกัดสำคัญของ Presence** — field `placeId` / `rootPlaceId` / `gameId` / `universeId`
-จะเป็น `null` ถ้าผู้ใช้ตั้ง privacy ไว้ ไม่ใช่ bug ของเรา จึงเป็นเหตุผลที่ §13 บังคับให้
-ตอบ `Membership unknown` แทน `Safe`
+**Presence — verified 28 ส.ค. 2026 แต่ verify ได้แค่ครึ่งเดียว**
+
+```jsonc
+// ยิงใส่บัญชีตัวเอง ขณะอยู่ในเกม
+{ "userPresenceType": 2, "lastLocation": "…", "placeId": 74729868188364,
+  "rootPlaceId": 74729868188364, "gameId": "12997a38-…", "universeId": 9582986239 }
+```
+
+`gameId` **มาครบสำหรับบัญชีตัวเอง** → รูปร่าง response ยืนยันแล้ว และ Phase 5 เขียนได้
+
+⚠️ **แต่นี่ยังไม่ตอบคำถามที่สำคัญกว่า** — เราต้องใช้กับ **คนอื่น** (คนใน blacklist) ซึ่ง Roblox
+คืน `gameId` ให้เฉพาะเมื่อ privacy ของ**เป้าหมาย**อนุญาต การเห็นข้อมูลตัวเองครบ **ไม่ได้แปลว่า**
+จะเห็นของคนอื่น → UI ต้องเขียนว่า coverage ไม่ครบ และยังคงตอบ `Membership unknown` (§13)
 
 ## 6. Games / Universe
 
 | Endpoint | Method | สถานะ | ใช้ทำอะไร |
 |---|---|---|---|
-| `apis.roblox.com/universes/v1/places/{placeId}/universe` | GET | `docs-only` | placeId → universeId |
-| `games.roblox.com/v1/games?universeIds=` | GET | `docs-only` | ชื่อเกม, playing, maxPlayers |
-| `games.roblox.com/v1/games/votes?universeIds=` | GET | `planned` | like / dislike (§23) |
+| `apis.roblox.com/universes/v1/places/{placeId}/universe` | GET | ✅ **`verified-live`** | `{universeId}` |
+| `games.roblox.com/v1/games?universeIds=` | GET | ✅ **`verified-live`** | `{id, rootPlaceId, name, description, …}` |
+| `games.roblox.com/v1/games/votes?universeIds=` | GET | ✅ **`verified-live`** | `{id, upVotes, downVotes}` |
+
+ทั้งสามตัวยิงจริง 28 ส.ค. 2026 ผ่านหมด
+
+## 6b. endpoint ที่ probe เข้าถึงได้อย่างเดียว (เพิ่ม 28 ส.ค. 2026)
+
+ทั้งหมดยัง `docs-only` และ **ยังไม่มี feature ไหนเรียกใช้** — มีไว้เพื่อให้ probe รอบเดียว
+ตอบคำถามที่บล็อก phase 5 / 7 / 8 / 9 อยู่ ว่า "endpoint นี้ตอบ browser extension ไหม"
+
+**ผลรอบแรก 28 ส.ค. 2026:**
+
+| Endpoint | phase | ผล |
+|---|---|---|
+| `users/authenticated` | — | ✅ `{id, name, displayName}` |
+| `presence/users` | 5 | ✅ `gameId` มาครบ (**เฉพาะบัญชีตัวเอง** — ดู §5) |
+| `friends/{id}/friends` | 8 | ✅ ตอบ 40 คน **แต่ `name` กับ `displayName` เป็น `""`** ⚠️ |
+| `avatar/{id}/avatar` | 8 | ✅ `{assets:[{id, name, assetType:{id,name}, currentVersionId}], playerAvatarType:"R15"}` |
+| `search-api/omni-search` | 7 | ✅ **`verified-live`** — แต่ **ต้องมี `sessionId`** (ดูล่าง) |
+| `trades/inbound` · `trades/completed` | 9 | ○ ตอบ 200 ทั้งคู่ แต่บัญชีนี้ไม่มีเทรดเลย → **ยังไม่เห็นรูปร่าง** |
+
+### omni-search — `sessionId` คือทั้งหมดที่ขาด (verified 28 ส.ค. 2026)
+
+**ไม่มี `sessionId`** → `{"searchResults": [], "nextPageToken": "", "filteredSearchQuery": "", …}`
+ชื่อ field ครบทุกตัวแต่ผลว่าง = endpoint ถูก query ไม่ครบ
+
+**มี `sessionId`** (GUID ที่ client สร้างเอง) → **40 result groups** สำหรับคำว่า `obby`
+
+```jsonc
+{ "contentGroupType": "Game",          // ← มี group ที่ไม่ใช่ Game ปนมาด้วย ต้องกรอง
+  "contents": [{
+    "universeId": 10759627860,          // ⚠️ ไม่มี placeId! เปิดหน้าเกมต้อง resolve ก่อน
+    "name": "the Obby World [NEW]",
+    "description": "", "playerCount": 2,
+    "totalUpVotes": 6, "totalDownVotes": 9,
+    "emphasis": false,
+    "isSponsored": true,                // ⚠️ Roblox ยัดโฆษณาปนมาในผลค้นหา
+    "nativeAdData": "lPwaw8RpjdYM…",    // blob ของโฆษณา — เราไม่เก็บ ไม่ส่งต่อ
+    "creatorName": "…"
+  }] }
+```
+
+**3 อย่างที่ต้องจัดการ ไม่ใช่แค่ render:**
+
+1. **`isSponsored`** — ซ่อน = ตัดสินใจแทนผู้ใช้ · โชว์เฉย ๆ = เอาโฆษณามาเสิร์ฟเป็นผลค้นหา
+   → **ติดป้าย `sponsored`** เป็นทางเดียวที่ไม่ใช่ทั้งสองอย่าง
+2. **ไม่มี `placeId`** — มีแต่ `universeId` → ตอนกด Open ต้องยิง `games?universeIds=`
+   (verified-live อยู่แล้ว) เพื่อเอา `rootPlaceId` · resolve **ตอนกด ไม่ใช่ทุกแถว**
+   ไม่งั้นเปลืองโควต้ากับแถวที่ผู้ใช้ไม่ได้แตะ
+3. **`nativeAdData`** — parser ไม่หยิบมาเลย มี test บังคับว่าห้ามหลุดออกไปจาก parser
+
+**`friends` คืน id แต่ไม่คืนชื่อ** — mutual friends ยัง intersect ด้วย `id` ได้ (ซึ่งเป็นสิ่งที่
+feature ต้องใช้จริง) แต่จะโชว์ชื่อต้องยิง `users/{userId}` เพิ่มทีละคน → ต้องคิดเรื่อง rate limit
+ก่อนออกแบบ ไม่ใช่เพิ่งมารู้ตอนเขียน UI
+
+**`empty` ≠ `ok`** — 2 บรรทัดล่างตอบ HTTP 200 แต่ไม่มีอะไรให้ดู ซึ่ง**ไม่พอ**จะ mark เป็น
+`verified-live` (ไม่รู้ชื่อ field ไม่รู้ type) · probe รอบแรกเคยรายงานสองตัวนี้ว่า "ok — update
+the map" ซึ่งเป็นการเคลมเกินจริงโดยตัวเครื่องมือเอง → เพิ่ม verdict `empty` แยกออกมาแล้ว
+
+4 host ล่างอยู่หลัง **optional permission** ไม่ได้ขอตอนติดตั้ง → Settings → Developer mode →
+**Grant** ก่อน ไม่งั้น probe จะตอบ `skipped` (ไม่ใช่ `failed` — เพราะ "เราไม่มีสิทธิ์"
+กับ "Roblox ปฏิเสธ" เป็นคนละคำตอบ และเราไม่สรุปแทนกัน)
 
 ## 7. Transport — ทำไมต้องซับซ้อน
 
@@ -200,7 +375,7 @@ flow: ยิงไปก่อนโดยไม่มี token → ได้ `4
 | ping จริงของผู้ใช้ต่อเซิร์ฟ | ไม่มี — ที่ API ให้คือค่าเฉลี่ยฝั่ง server |
 | server uptime / created time | ไม่มี |
 | server version / build | ไม่มี |
-| รายชื่อผู้เล่นใน public server | ไม่มี — `playerTokens` ว่างเสมอ |
+| รายชื่อผู้เล่นใน public server | `players` ว่าง · `playerTokens` มีมาจริงแต่ §13 ห้ามเอาไป fingerprint |
 | **region ของเซิร์ฟ** | มีข้อมูล แต่ **browser เข้าไม่ถึง** — ต้องมี backend (ดู §3) |
 | server list ครบทุกตัว | ไม่มี — cap ~150–500 และ Roblox บอกว่าตั้งใจ |
 | เช็ค JobId เดี่ยวว่ายังอยู่ไหม | ไม่มี — ต้อง scan แล้ว match |

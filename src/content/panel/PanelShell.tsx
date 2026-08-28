@@ -4,12 +4,42 @@ import { useLiveStats } from '../../hooks/useLiveStats';
 import type { UiRequest } from '../../models/messages';
 import { useDraggable, type Point, type Size } from './useDraggable';
 import { resolveTool, visibleTools } from './tools';
+import { nextToolIndex } from './railNavigation';
 import { onPanelRequest } from './panelBus';
 import { CommandPalette } from './CommandPalette';
 import { usePaletteHotkey } from './useHotkey';
 import { detectPageContext, parseUserId } from '../../utils/robloxUrl';
 
 const DEFAULT_SIZE: Size = { width: 420, height: 560 };
+
+const TOOL_PANEL_ID = 'rc-tool-panel';
+const tabId = (toolId: string): string => `rc-tab-${toolId}`;
+
+/**
+ * Arrow-key movement along the tool rail, per the tabs pattern.
+ *
+ * Selection follows focus, which is right for a rail of six tools with nothing expensive
+ * behind them: pressing Down shows the next tool rather than merely outlining it.
+ */
+function moveTool(
+  event: React.KeyboardEvent,
+  tools: readonly { id: string }[],
+  activeId: string,
+  select: (id: string) => void,
+): void {
+  const current = tools.findIndex((tool) => tool.id === activeId);
+  const next = nextToolIndex(event.key, current, tools.length);
+  if (next === null) return;
+
+  event.preventDefault();
+  const target = tools[next];
+  if (!target) return;
+
+  select(target.id);
+  (event.currentTarget as HTMLElement)
+    .querySelector<HTMLElement>(`#${CSS.escape(tabId(target.id))}`)
+    ?.focus();
+}
 
 /**
  * The floating Command Center, living inside the Roblox page.
@@ -100,7 +130,10 @@ export function PanelShell(): React.JSX.Element | null {
       if (message?.type === 'cs/togglePanel') setOpenState(!open);
     };
     chrome.runtime.onMessage.addListener(onMessage);
-    const stopBus = onPanelRequest((command) => {
+    const stopBus = onPanelRequest((command, tool) => {
+      // A button that names a tool opens that tool: the Quick Action Bar's Private
+      // button should land on private servers, not on whatever was open last time.
+      if (tool) selectTool(tool);
       setOpenState(command === 'toggle' ? !open : command === 'open');
     });
     return () => {
@@ -210,15 +243,34 @@ export function PanelShell(): React.JSX.Element | null {
       {minimised ? null : (
         <>
           <div className="rc-body">
-            <nav className="rc-rail" aria-label="Tools">
+            {/*
+              A tablist rather than a row of buttons, because that is what it is: one of
+              these is selected and it decides what the panel next to it shows. The
+              difference is not cosmetic - a screen reader announces "tab 3 of 6,
+              selected", and the arrow keys move between them while Tab leaves the rail
+              entirely, which is what someone navigating by keyboard expects.
+            */}
+            <nav
+              className="rc-rail"
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Tools"
+              onKeyDown={(event) => moveTool(event, tools, active.id, selectTool)}
+            >
               {tools.map((tool) => {
                 const count = tool.badge?.(state) ?? 0;
+                const current = tool.id === active.id;
                 return (
                   <button
                     key={tool.id}
+                    id={tabId(tool.id)}
                     type="button"
-                    className={`rc-rail__btn${tool.id === active.id ? ' rc-rail__btn--on' : ''}`}
-                    aria-current={tool.id === active.id}
+                    role="tab"
+                    aria-selected={current}
+                    aria-controls={TOOL_PANEL_ID}
+                    // Only the selected tab is in the tab order; the arrows do the rest.
+                    tabIndex={current ? 0 : -1}
+                    className={`rc-rail__btn${current ? ' rc-rail__btn--on' : ''}`}
                     title={tool.title}
                     onClick={() => selectTool(tool.id)}
                   >
@@ -226,19 +278,41 @@ export function PanelShell(): React.JSX.Element | null {
                       {tool.icon}
                     </span>
                     <span className="rc-rail__label">{tool.label}</span>
-                    {count > 0 ? <span className="rc-rail__dot" aria-hidden="true" /> : null}
+                    {count > 0 ? (
+                      <>
+                        <span className="rc-rail__dot" aria-hidden="true" />
+                        {/* The dot is colour and position only, which says nothing out loud. */}
+                        <span className="rc-sr-only">{`${count} needing attention`}</span>
+                      </>
+                    ) : null}
                   </button>
                 );
               })}
             </nav>
 
-            <div className="rc-content">
-              {error ? <div className="rc-banner">{error.message}</div> : null}
-              {toasts.map((toast) => (
-                <div key={toast.id} className={`rc-toast rc-toast--${toast.level}`} role="status">
-                  {toast.message}
+            <div
+              className="rc-content"
+              id={TOOL_PANEL_ID}
+              role="tabpanel"
+              aria-labelledby={tabId(active.id)}
+            >
+              {error ? (
+                <div className="rc-banner" role="alert">
+                  {error.message}
                 </div>
-              ))}
+              ) : null}
+              {/*
+                Toasts report the result of something the user just did - a join launched,
+                a flag saved - and they disappear on their own, so they have to be spoken
+                rather than merely drawn.
+              */}
+              <div aria-live="polite" aria-atomic="false">
+                {toasts.map((toast) => (
+                  <div key={toast.id} className={`rc-toast rc-toast--${toast.level}`} role="status">
+                    {toast.message}
+                  </div>
+                ))}
+              </div>
               {active.render({ state, busy, send: dispatch })}
             </div>
           </div>

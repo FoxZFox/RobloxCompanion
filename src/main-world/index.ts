@@ -20,6 +20,14 @@ interface GameLauncher {
     joinAttemptId?: string,
     joinAttemptOrigin?: string,
   ) => unknown;
+  /** Private servers: the same launcher, entered by access code rather than job id. */
+  joinPrivateGame?: (
+    placeId: number,
+    accessCode: string,
+    linkCode?: string,
+    joinAttemptId?: string,
+    joinAttemptOrigin?: string,
+  ) => unknown;
   isJoinAttemptIdEnabled?: () => boolean;
 }
 
@@ -55,8 +63,28 @@ window.addEventListener('message', (event: MessageEvent) => {
   if (event.source !== window) return;
   if (!isJoinEnvelope(event.data)) return;
 
-  const { reqId, placeId, jobId } = event.data;
+  const { reqId, placeId, jobId, accessCode } = event.data;
   const launcher = window.Roblox?.GameLauncher;
+
+  /*
+   * A private server is entered by access code, not by job id - a different launcher
+   * function with its own name, so its absence is reported separately. The code arrives
+   * with the request and is used here and nowhere else: nothing stores it, and it is not
+   * put back on the page.
+   */
+  if (accessCode) {
+    if (typeof launcher?.joinPrivateGame !== 'function') {
+      reply(reqId, false, 'no-private-launcher');
+      return;
+    }
+    try {
+      launcher.joinPrivateGame(Number(placeId), accessCode);
+      reply(reqId, true);
+    } catch (err) {
+      reply(reqId, false, err instanceof Error ? err.message : 'launch-threw');
+    }
+    return;
+  }
 
   if (typeof launcher?.joinGameInstance !== 'function') {
     reply(reqId, false, 'no-launcher');

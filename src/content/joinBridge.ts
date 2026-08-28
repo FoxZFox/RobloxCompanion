@@ -17,7 +17,11 @@ function isJoinResult(value: unknown): value is JoinResultEnvelope {
  * Asks the MAIN-world script to launch a server, correlating request and response by id
  * so two concurrent joins cannot resolve each other's promise.
  */
-export function requestJoin(placeId: string, jobId: string): Promise<PageJoinResponse> {
+export function requestJoin(
+  placeId: string,
+  jobId: string,
+  accessCode?: string,
+): Promise<PageJoinResponse> {
   const reqId = nextId('join');
 
   return new Promise((resolve) => {
@@ -36,7 +40,14 @@ export function requestJoin(placeId: string, jobId: string): Promise<PageJoinRes
 
     window.addEventListener('message', onMessage);
     window.postMessage(
-      { __ns: PAGE_MESSAGE_NAMESPACE, kind: 'join', reqId, placeId, jobId },
+      {
+        __ns: PAGE_MESSAGE_NAMESPACE,
+        kind: 'join',
+        reqId,
+        placeId,
+        jobId,
+        ...(accessCode ? { accessCode } : {}),
+      },
       window.location.origin,
     );
   });
@@ -62,7 +73,8 @@ export function runStrategy(
   strategy: JoinStrategyName,
   placeId: string,
   jobId: string,
+  accessCode?: string,
 ): Promise<PageJoinResponse> {
   if (strategy === 'deeplink') return Promise.resolve(requestDeeplink(placeId, jobId));
-  return requestJoin(placeId, jobId);
+  return requestJoin(placeId, jobId, accessCode);
 }

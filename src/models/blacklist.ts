@@ -30,9 +30,10 @@ export type BlacklistMap = Record<string, BlacklistedPlayer>;
  * Whether any blacklisted player is in a given server.
  *
  * `unknown` is the honest answer almost every time and must never be rendered as "safe".
- * The public server list returns an empty `playerTokens` array, and the presence API only
- * reveals a user's `gameId` when that user's own privacy settings allow it — so for most
- * players Roblox simply does not tell us where they are. See spec section 13.
+ * The public server list does return opaque `playerTokens`, but turning one into a user id
+ * means fingerprinting the avatar thumbnail it renders, which section 13 forbids; and the
+ * presence API reveals a user's `gameId` only when that user's own privacy settings allow
+ * it. So for most players we either cannot tell where they are, or have decided not to.
  */
 export type MembershipVerdict = 'unknown' | 'none-detected' | 'detected';
 

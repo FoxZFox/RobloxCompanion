@@ -6,6 +6,7 @@ import { runStrategy } from './joinBridge';
 import { pageGet, pagePost } from './pageFetch';
 import { onLocationChange } from './observers/domObserver';
 import { injectQuickActionBar } from './injectors/quickActionBar';
+import { paintPanelHost, startThemeInjector } from './injectors/themeInjector';
 import { mountPanel } from './panel/mountPanel';
 import { parsePlaceId } from '../utils/robloxUrl';
 
@@ -45,7 +46,7 @@ chrome.runtime.onMessage.addListener((message: CsRequest, _sender, sendResponse:
       return false;
 
     case 'cs/join':
-      runStrategy(message.strategy, message.placeId, message.jobId).then(sendResponse, () =>
+      runStrategy(message.strategy, message.placeId, message.jobId, message.accessCode).then(sendResponse, () =>
         sendResponse({ ok: false, reason: 'bridge-failed' }),
       );
       return true;
@@ -95,11 +96,22 @@ function mount(): void {
   // Roblox's markup at all, so it survives any layout change they make.
   try {
     mountPanel();
+    // The panel holds its palette on its own shadow host, so a freshly mounted one has
+    // to be handed the current theme; the stylesheet in <head> survives on its own.
+    paintPanelHost();
   } catch {
     // Never leave the page worse than we found it.
   }
   void injectQuickActionBar().catch(() => undefined);
 }
+
+/*
+ * The theme runs ahead of everything else and outside the mount cycle: it is the one
+ * injector that changes how the page already on screen looks, so every millisecond it
+ * waits is a millisecond of the wrong colours. It also keeps itself in step with settings
+ * from then on, which is why it is started once rather than re-run on navigation.
+ */
+void startThemeInjector().catch(() => undefined);
 
 mount();
 onLocationChange(mount);

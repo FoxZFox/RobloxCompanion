@@ -18,6 +18,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   NO_EXPERIENCE: 'เปิดหน้าเกมของ Roblox ก่อน',
   USER_NOT_FOUND: 'ไม่พบผู้ใช้ชื่อนี้',
   TIMEOUT: 'หมดเวลารอการตอบกลับ',
+  PRESENCE_DISABLED: 'เปิด "Allow presence lookups" ใน Settings ก่อน — feature นี้ไปอ่านข้อมูลของคนอื่น จึงปิดไว้เป็นค่าเริ่มต้น',
+  PRESENCE_NO_PERMISSION: 'ต้องกด Grant ให้ presence.roblox.com ใน Settings ก่อน',
   INTERNAL: 'เกิดข้อผิดพลาดภายใน',
 };
 

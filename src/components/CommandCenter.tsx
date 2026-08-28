@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import './theme.css';
 import './CommandCenter.css';
 import { useAppState } from '../hooks/useAppState';
+import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { AppState, UiRequest } from '../models/messages';
 import { LastJoinedCard } from './LastJoinedCard';
 import { SmartJoinPanel } from './SmartJoinPanel';
 import { BlacklistTab, HistoryTab, ServersTab } from './tabs';
 import { PlaytimePane } from './PlaytimePane';
+import { PrivateServersPane } from './PrivateServersPane';
 
-type TabKey = 'servers' | 'history' | 'blacklist' | 'playtime';
+type TabKey = 'servers' | 'history' | 'blacklist' | 'playtime' | 'private';
 
 interface TabDefinition {
   key: TabKey;
@@ -22,6 +24,7 @@ const TABS: readonly TabDefinition[] = [
   { key: 'history', label: 'History', flag: 'serverHistory' },
   { key: 'blacklist', label: 'Blacklist', flag: 'playerBlacklist' },
   { key: 'playtime', label: 'Time', flag: 'playtime' },
+  { key: 'private', label: 'Private', flag: 'privateServers' },
 ];
 
 /**
@@ -36,6 +39,7 @@ export function CommandCenter({ surface }: { surface: 'popup' | 'panel' }): Reac
   const { state, error, busy, toasts, send } = useAppState();
   const [tab, setTab] = useState<TabKey>('servers');
   const openPanel = useOpenSidePanel();
+  useThemeTokens(state);
 
   const dispatch = (request: UiRequest): void => {
     void send(request);
@@ -86,7 +90,7 @@ export function CommandCenter({ surface }: { surface: 'popup' | 'panel' }): Reac
 
       <div className="rc-pinned">
         <LastJoinedCard state={state} busy={busy} send={dispatch} />
-        <QuickActions state={state} busy={busy} send={dispatch} />
+        <QuickActions state={state} busy={busy} send={dispatch} openTab={setTab} />
         <SmartJoinPanel state={state} />
         <Health state={state} />
       </div>
@@ -112,6 +116,7 @@ export function CommandCenter({ surface }: { surface: 'popup' | 'panel' }): Reac
         {tab === 'history' ? <HistoryTab state={state} busy={busy} send={dispatch} /> : null}
         {tab === 'blacklist' ? <BlacklistTab state={state} busy={busy} send={dispatch} /> : null}
         {tab === 'playtime' ? <PlaytimePane state={state} busy={busy} send={dispatch} /> : null}
+        {tab === 'private' ? <PrivateServersPane state={state} busy={busy} send={dispatch} /> : null}
       </div>
 
       {toasts.length > 0 ? (
@@ -163,10 +168,12 @@ function QuickActions({
   state,
   busy,
   send,
+  openTab,
 }: {
   state: AppState;
   busy: boolean;
   send: (request: UiRequest) => void;
+  openTab: (tab: TabKey) => void;
 }): React.JSX.Element | null {
   const placeId = state.experience?.placeId;
   if (!placeId) return null;
@@ -221,8 +228,16 @@ function QuickActions({
         <button
           type="button"
           className="rc-btn"
-          disabled
-          title="Arrives in phase 6, once the private server API is verified against live traffic."
+          disabled={busy || !state.settings.features.privateServers}
+          title={
+            state.settings.features.privateServers
+              ? 'The private servers you own for this experience'
+              : 'Private Servers is switched off in Settings'
+          }
+          onClick={() => {
+            openTab('private');
+            send({ type: 'privateServers/refresh' });
+          }}
         >
           🔒 Private
         </button>

@@ -9,7 +9,11 @@ import { getScanState } from './scanState';
 import { buildState } from './stateBuilder';
 import * as blacklistHandlers from './handlers/blacklistHandlers';
 import * as flagHandlers from './handlers/flagHandlers';
+import * as privateServerHandlers from './handlers/privateServerHandlers';
+import * as presenceHandlers from './handlers/presenceHandlers';
+import * as profileHandlers from './handlers/profileHandlers';
 import * as reportHandlers from './handlers/reportHandlers';
+import * as searchHandlers from './handlers/searchHandlers';
 import * as serverHandlers from './handlers/serverHandlers';
 import * as smartJoinHandlers from './handlers/smartJoinHandlers';
 
@@ -190,6 +194,32 @@ async function apply(
       );
       return;
     }
+
+    case 'privateServers/refresh':
+      await privateServerHandlers.refresh(context, placeId);
+      return;
+
+    case 'privateServers/join': {
+      await privateServerHandlers.join(context, request.placeId, request.vipServerId);
+      toast('success', 'Launching Roblox...');
+      return;
+    }
+
+    case 'search/experiences':
+      await searchHandlers.search(context, request.query);
+      return;
+
+    case 'search/open':
+      await searchHandlers.openResult(context, request.universeId);
+      return;
+
+    case 'blacklist/checkPresence':
+      await presenceHandlers.check(context);
+      return;
+
+    case 'profile/mutualFriends':
+      await profileHandlers.checkMutual(context, request.userId);
+      return;
 
     case 'playtime/end':
       await context.playtime.endSession();

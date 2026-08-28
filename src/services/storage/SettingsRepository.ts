@@ -1,5 +1,5 @@
 import { STORAGE_KEYS, STORAGE_SCHEMA_VERSION } from '../../config/constants';
-import { FEATURES_INTRODUCED_AT } from '../../config/features';
+import { unpinFeaturesIntroducedAfter } from '../../config/features';
 import type { Settings, SettingsPatch } from '../../models/settings';
 import { DEFAULT_SETTINGS, mergePatch, mergeSettings } from '../../models/settings';
 import type { TransportMode } from '../roblox/transport';
@@ -43,12 +43,7 @@ export class SettingsRepository extends BaseRepository {
     const stored = await this.readRaw<SettingsPatch>(STORAGE_KEYS.settings);
     if (!stored?.features) return;
 
-    const features = { ...stored.features };
-    for (const [version, introduced] of Object.entries(FEATURES_INTRODUCED_AT)) {
-      if (Number(version) <= from) continue;
-      for (const key of introduced) delete features[key];
-    }
-
+    const features = unpinFeaturesIntroducedAfter(stored.features, from);
     await this.writeRaw(STORAGE_KEYS.settings, { ...stored, features });
   }
 
@@ -57,6 +52,19 @@ export class SettingsRepository extends BaseRepository {
     this.overrides = (await this.readRaw<SettingsPatch>(STORAGE_KEYS.settings)) ?? {};
     this.resolved = mergeSettings(DEFAULT_SETTINGS, this.overrides);
     return this.resolved;
+  }
+
+  /**
+   * Drops the cache and reads again.
+   *
+   * The service worker owns settings and its cache is authoritative there, but a second
+   * instance lives in the content script for the theme, which has to notice a change made
+   * in the options page in another tab.
+   */
+  async reload(): Promise<Settings> {
+    this.overrides = null;
+    this.resolved = null;
+    return this.get();
   }
 
   async set(patch: SettingsPatch): Promise<Settings> {

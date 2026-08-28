@@ -3,6 +3,10 @@ import type { ExperienceContext } from './experience';
 import type { CustomFlag } from './flags';
 import type { ApiProbeResult } from '../features/devtools/apiProbe';
 import type { LiveExperienceStats } from '../features/experience/liveStats';
+import type { PrivateServerState } from './privateServer';
+import type { SearchState } from './search';
+import type { ProfileState } from './profile';
+import type { PresenceSummary } from '../features/playerBlacklist/presence';
 import type { PlaySession, PlaytimeTotals } from '../features/playtime/playtime';
 import type { LastJoined, ServerReport, ServerStatus, ServerView } from './server';
 import type { Settings, SettingsPatch } from './settings';
@@ -22,6 +26,8 @@ export type ErrorCode =
   | 'NO_EXPERIENCE'
   | 'USER_NOT_FOUND'
   | 'TIMEOUT'
+  | 'PRESENCE_DISABLED'
+  | 'PRESENCE_NO_PERMISSION'
   | 'INTERNAL';
 
 export interface SerializedError {
@@ -61,6 +67,12 @@ export type UiRequest =
   | { type: 'playtime/end' }
   | { type: 'playtime/clear' }
   | { type: 'stats/refresh'; placeId: string }
+  | { type: 'privateServers/refresh' }
+  | { type: 'privateServers/join'; placeId: string; vipServerId: number }
+  | { type: 'search/experiences'; query: string }
+  | { type: 'search/open'; universeId: string }
+  | { type: 'profile/mutualFriends'; userId: string }
+  | { type: 'blacklist/checkPresence' }
   | { type: 'ui/openSidePanel' }
   | { type: 'ui/openDashboard' }
   | { type: 'ui/openOptions' }
@@ -123,6 +135,14 @@ export interface AppState {
   allCustomFlags: CustomFlag[];
   /** Results of the last Developer Mode API probe, if one has been run. */
   apiProbe: ApiProbeResult[] | null;
+  /** Private servers this account owns, once the user has asked for them (phase 6). */
+  privateServers: PrivateServerState;
+  /** The last experience search (phase 7). */
+  search: SearchState;
+  /** Mutual friends for the profile being viewed (phase 8). */
+  profile: ProfileState;
+  /** The last presence lookup for blacklisted players (phase 5), if one was run. */
+  presence: PresenceSummary | null;
   /** Live like/dislike and player counts for the current experience, when fetched. */
   liveStats: LiveExperienceStats | null;
   /** Per-experience playtime totals, longest first. */
@@ -153,7 +173,13 @@ export type CsRequest =
   | { type: 'cs/context' }
   | { type: 'cs/fetch'; url: string }
   | { type: 'cs/post'; url: string; body: string; csrfToken?: string }
-  | { type: 'cs/join'; placeId: string; jobId: string; strategy: JoinStrategyName }
+  | {
+      type: 'cs/join';
+      placeId: string;
+      jobId: string;
+      strategy: JoinStrategyName;
+      accessCode?: string;
+    }
   /** Toolbar icon asking the in-page panel to open or close. */
   | { type: 'cs/togglePanel' };
 
@@ -176,6 +202,8 @@ export interface PageJoinRequest {
   reqId: string;
   placeId: string;
   jobId: string;
+  /** Present only for a private server. Never stored, never logged, never persisted. */
+  accessCode?: string;
 }
 
 export interface PageJoinResponse {

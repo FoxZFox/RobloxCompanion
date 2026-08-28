@@ -9,10 +9,10 @@
 | 2 | Server Browser | ✅ เสร็จ |
 | 3 | Smart Join | ✅ เสร็จ |
 | 4 | Reputation ขั้นสูง | ✅ เสร็จ |
-| 5 | Player Blacklist ขั้นสูง | 🟡 ส่วน local เสร็จ · presence ค้างรอ verify |
-| 6 | Private Servers | 🔒 **บล็อกตัวเอง** — ต้อง verify API ก่อน (ดูล่าง) |
-| 7 | Experience features | 🟡 playtime + live stats ✅ · quick search ⬜ |
-| 8 | Profiles / Avatar / Themes | ⬜ |
+| 5 | Player Blacklist ขั้นสูง | ✅ local + presence (opt-in) |
+| 6 | Private Servers | ✅ enabled · list · join (สร้าง = ไม่ทำ §8) |
+| 7 | Experience features | ✅ playtime · live stats · quick search |
+| 8 | Profiles / Avatar / Themes | 🟡 Themes ✅ · Profiles ✅ · Avatar ⬜ |
 | 9 | Trading | ⬜ |
 | 10 | Polish | 🟡 Command Palette ✅ · a11y / i18n ⬜ |
 
@@ -102,7 +102,28 @@ scope ได้ทั้งแบบเฉพาะเกม (§21) และแ
 **ยังค้าง:** presence check สำหรับ subset ที่ privacy อนุญาต — `presence.roblox.com` ยังเป็น
 `docs-only` **ต้อง verify ก่อน** (ดู Phase 6) · **ห้าม deanonymization** (§13)
 
-## Phase 6 — Private Servers 🔒 บล็อกตัวเองไว้ก่อน
+## Phase 6 — Private Servers 🟡 (verify แล้วบางส่วน · 28 ส.ค. 2026)
+
+**ทำแล้ว** — ผู้ใช้รัน probe ส่งผลมา ทั้งสอง endpoint ที่จำเป็นตอบจริง:
+
+| endpoint | ผล |
+|---|---|
+| `private-servers/enabled-in-universe/{universeId}` | ✅ `{privateServersEnabled: true}` |
+| `vip-servers/my-private-servers` | ✅ 25 server + รูปร่างครบ (ดู `02` §4) |
+
+→ สร้าง tool 🔒 **Private** ใน panel + tab ใน popup/side panel: บอกว่าเกมนี้เปิด private server
+ไหม · list ที่เราเป็นเจ้าของ (แยก "เกมนี้" กับ "เกมอื่น") · วันหมดอายุ · auto-renew · ราคาต่ออายุ
+
+**ยังไม่มีปุ่ม Join — ตั้งใจ** · `my-private-servers` **ไม่มี `accessCode` / `link`** มาด้วย
+และทางที่ Roblox document ไว้คือ **PATCH** ซึ่ง**เขียน**และ regenerate ลิงก์ได้
+→ ลิงก์ที่ผู้ใช้แจกเพื่อนไปแล้วจะใช้ไม่ได้ทันที · เพิ่ม probe `GET /v1/vip-servers/{id}` แทน
+ถ้า GET อ่าน code ได้ → join ได้โดยไม่ต้องเขียนอะไรเลย · ถ้าไม่ได้ → **ไม่มีปุ่ม join** (§8)
+
+ยังไม่ทำ: สร้าง private server (ใช้ Robux → §8) · Smart private preference (§29)
+
+---
+
+### บันทึกไว้: ตอนที่ยังบล็อกอยู่เขียนว่าอย่างนี้
 
 **ยังไม่เขียนโค้ด และตั้งใจไม่เขียน** จนกว่าจะ verify API
 
@@ -130,10 +151,33 @@ Smart private preference (§29) · **ห้าม auto-buy** (§8)
 - **Live stats** — like / dislike / playing count (RoPro คิดเงิน Plus — ของเราฟรี)
   · `approvalRatio` คืน `null` เมื่อยังไม่มีโหวต ไม่ใช่ 0% เพราะเกมใหม่ = ยังไม่รู้ผลตอบรับ ไม่ใช่แย่
 
-**ยังค้าง:** quick search / quick play · invite links (ต้อง private server → phase 6)
+**Quick search ✅ (28 ส.ค. 2026)** — probe รอบแรกได้ผลว่าง เพราะ query ขาด `sessionId`
+ใส่แล้วได้ 40 result groups ทันที · tool 🔍 ใน panel + tab ใน popup / side panel
 
-## Phase 8 — Profiles / Avatar / Themes
-mutual friends · last online · avatar sandbox · saved outfits · quick equip · themes (asset ของเราเอง)
+- **debounce 450ms** — request พวกนี้ใช้โควต้าเดียวกับ server browser ชื่อเกม 9 ตัวอักษร
+  ต้องไม่กลายเป็น 9 requests (§32)
+- **`isSponsored` ติดป้าย ไม่ซ่อน** — ซ่อน = ตัดสินใจแทนผู้ใช้ · โชว์เฉย ๆ = เสิร์ฟโฆษณา
+  เป็นผลค้นหา · ติดป้ายเป็นทางเดียวที่ไม่ใช่ทั้งสองอย่าง
+- **ผลค้นหาไม่มี `placeId`** มีแต่ `universeId` → resolve `rootPlaceId` **ตอนกด Open**
+  ไม่ใช่ทุกแถว ไม่งั้นเปลืองโควต้ากับแถวที่ไม่มีใครแตะ
+- นับซื่อสัตย์: "แสดง 24 จาก N ที่ Roblox คืนมา"
+
+**ยังค้าง:** invite links (ต้อง private server → phase 6)
+
+## Phase 8 — Profiles / Avatar / Themes 🟡
+
+**Themes ✅** — สีล้วน ไม่มี asset (§23) ไม่แตะ API จึงทำได้โดยไม่ต้องรอ probe
+
+- ผู้ใช้เลือก **3 สี** (background / text / accent) ที่เหลือ derive ทั้งหมด → palette เพี้ยนไม่ได้
+  · สีตัวอักษรบนปุ่มเลือกจาก contrast จริง ไม่ได้ fix ไว้ตอนวาด palette
+- **hex เท่านั้น** — settings เข้ามาทาง import backup ได้ ถ้าไม่กรอง สตริงที่มี `}` จะเขียน CSS
+  ของตัวเองลงหน้าที่ผู้ใช้ล็อกอิน
+- **ไม่เคลมว่าติด** — อ่าน `style.sheet` กลับดูว่า CSP บล็อกไหม + นับ element ที่ selector เจอจริง
+  แล้วรายงานใน panel ว่า "match 4 จาก 6 ส่วน" (กฎเดียวกับ honest labeling §55)
+- แตะ Roblox เฉพาะ **สี** เท่านั้น ห้ามขยับ/ซ่อน layout — มี test บังคับไว้
+
+**ยังไม่ได้ทำ:** mutual friends · last online · avatar sandbox · saved outfits · quick equip
+— ทั้งหมดอยู่บน endpoint ที่ยังเป็น `docs-only` (กฎข้อ 7 ด้านล่าง)
 
 ## Phase 9 — Trading
 trade panel · `ItemValueProvider` adapter (หลายเจ้า) · calculator · notifications ·
@@ -153,7 +197,18 @@ protection features (**default OFF** §24)
 
 เพิ่ม command ใหม่ = เพิ่ม 1 entry ใน `COMMANDS` เหมือน tool rail
 
-**ยังค้าง:** a11y ครบถ้วน · i18n · performance profiling
+**a11y — ทำแล้วบางส่วน (v0.3.0)**
+
+- **palette = combobox/listbox จริง** — focus อยู่ที่ช่องพิมพ์ตลอด แล้วบอกแถวที่เลือกด้วย
+  `aria-activedescendant` (แถวเป็น `role="option"` ไม่ใช่ปุ่ม เพราะปุ่มจะแย่ง focus)
+  · `aria-modal` · **กิน Tab ไว้** ไม่งั้นหลุดไปหน้า Roblox แล้วเหลือ palette ที่คีย์บอร์ดสั่งไม่ได้
+  · คืน focus ให้จุดเดิมตอนปิด (อ่านจาก `getRootNode()` เพราะอยู่ใน shadow root)
+- **tool rail = tablist** — ลูกศร/Home/End เลื่อนได้ วนรอบ · `tabIndex` -1 ทุกตัวยกเว้นตัวที่เลือก
+  · logic แยกเป็น `railNavigation.ts` (pure) มี test
+- จุดแดงบน rail มี `.rc-sr-only` กำกับ เพราะสีกับตำแหน่งอย่างเดียวไม่พูดอะไรออกมา
+- toast อยู่ใน `aria-live="polite"` · error banner เป็น `role="alert"`
+
+**ยังค้าง:** a11y ของ popup / options · i18n · performance profiling
 
 ---
 

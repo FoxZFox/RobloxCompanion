@@ -16,6 +16,12 @@
     "https://users.roblox.com/*",
     "https://apis.roblox.com/*"
   ],
+  "optional_host_permissions": [
+    "https://presence.roblox.com/*",
+    "https://friends.roblox.com/*",
+    "https://avatar.roblox.com/*",
+    "https://trades.roblox.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

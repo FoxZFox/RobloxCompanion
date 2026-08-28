@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clampToViewport, defaultPosition } from './useDraggable';
+import { nextToolIndex } from './railNavigation';
 
 const VIEWPORT = { width: 1280, height: 800 };
 const SIZE = { width: 420, height: 560 };
@@ -63,5 +64,45 @@ describe('defaultPosition', () => {
     const point = defaultPosition(SIZE);
     expect(point.x).toBeGreaterThanOrEqual(8);
     expect(point.y).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('nextToolIndex', () => {
+  it('moves down and up the rail', () => {
+    expect(nextToolIndex('ArrowDown', 0, 6)).toBe(1);
+    expect(nextToolIndex('ArrowUp', 3, 6)).toBe(2);
+  });
+
+  it('wraps at both ends, so the rail has no dead end', () => {
+    expect(nextToolIndex('ArrowDown', 5, 6)).toBe(0);
+    expect(nextToolIndex('ArrowUp', 0, 6)).toBe(5);
+  });
+
+  it('treats left and right the same as up and down', () => {
+    // The rail is vertical, but a keyboard user reaching for the arrows should not have
+    // to work out which pair this particular list wants.
+    expect(nextToolIndex('ArrowRight', 0, 6)).toBe(1);
+    expect(nextToolIndex('ArrowLeft', 0, 6)).toBe(5);
+  });
+
+  it('jumps to the ends with Home and End', () => {
+    expect(nextToolIndex('Home', 4, 6)).toBe(0);
+    expect(nextToolIndex('End', 1, 6)).toBe(5);
+  });
+
+  it('ignores every other key, so typing still reaches the page', () => {
+    expect(nextToolIndex('a', 0, 6)).toBeNull();
+    expect(nextToolIndex('Tab', 0, 6)).toBeNull();
+    expect(nextToolIndex('Enter', 0, 6)).toBeNull();
+  });
+
+  it('does nothing when the rail is empty', () => {
+    expect(nextToolIndex('ArrowDown', -1, 0)).toBeNull();
+  });
+
+  it('starts from the first tool when none is active', () => {
+    // findIndex returns -1 when the stored tool no longer exists - a feature switched off
+    // while the panel was closed - and the rail still has to move somewhere sensible.
+    expect(nextToolIndex('ArrowDown', -1, 6)).toBe(0);
   });
 });

@@ -185,6 +185,10 @@ export const COMMANDS: readonly Command[] = [
   { id: 'open-blacklist', label: 'Open player blacklist', icon: '🚫', section: 'Open', flag: 'playerBlacklist', run: (ctx) => ctx.openPanel('blacklist') },
   { id: 'open-flags', label: 'Open your flags', icon: '🚩', section: 'Open', run: (ctx) => ctx.openPanel('flags') },
   { id: 'open-playtime', label: 'Open playtime and live stats', icon: '⏱', section: 'Open', flag: 'playtime', run: (ctx) => ctx.openPanel('playtime') },
+  { id: 'open-themes', label: 'Change theme', hint: 'Recolour Roblox and this extension', icon: '🎨', section: 'Open', flag: 'themes', run: (ctx) => ctx.openPanel('themes') },
+  { id: 'open-profile', label: 'Mutual friends', hint: 'Compare friends with this profile', icon: '👤', section: 'Profile', flag: 'profiles', onlyIn: ['profile'], run: (ctx) => ctx.openPanel('profile') },
+  { id: 'open-search', label: 'Search for an experience', hint: 'Find a game by name', icon: '🔍', section: 'Open', flag: 'quickSearch', run: (ctx) => ctx.openPanel('search') },
+  { id: 'open-private', label: 'Open private servers', hint: 'The ones you own', icon: '🔒', section: 'Open', flag: 'privateServers', run: (ctx) => ctx.openPanel('private') },
   { id: 'open-settings', label: 'Open settings', icon: '⚙', section: 'Open', run: (ctx) => ctx.send({ type: 'ui/openOptions' }) },
   { id: 'open-dashboard', label: 'Open dashboard', icon: '📊', section: 'Open', run: (ctx) => ctx.send({ type: 'ui/openDashboard' }) },
 ];

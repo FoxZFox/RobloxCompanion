@@ -7,6 +7,10 @@ import type { ExperienceContext } from '../models/experience';
 import type { ScanOutcome } from '../models/server';
 import type { SmartJoinPlan } from '../models/smartJoin';
 import type { ApiProbeResult } from '../features/devtools/apiProbe';
+import { EMPTY_PRIVATE_SERVERS, type PrivateServerState } from '../models/privateServer';
+import { EMPTY_SEARCH, type SearchState } from '../models/search';
+import { EMPTY_PROFILE, type ProfileState } from '../models/profile';
+import type { PresenceSummary } from '../features/playerBlacklist/presence';
 import { GamesApi } from '../services/roblox/gamesApi';
 import { RequestScheduler } from '../services/roblox/RequestScheduler';
 import { RobloxHttpClient } from '../services/roblox/RobloxHttpClient';
@@ -22,6 +26,10 @@ import { SettingsRepository } from '../services/storage/SettingsRepository';
 import { chromeStorage } from '../services/storage/storageArea';
 import { ServerListService } from '../features/servers/ServerListService';
 import { ApiProbe } from '../features/devtools/apiProbe';
+import { PrivateServersApi } from '../services/roblox/privateServersApi';
+import { SearchApi } from '../services/roblox/searchApi';
+import { FriendsApi } from '../services/roblox/friendsApi';
+import { PresenceApi } from '../services/roblox/presenceApi';
 import { LiveStatsService, type LiveExperienceStats } from '../features/experience/liveStats';
 import { PlaytimeRepository } from '../services/storage/PlaytimeRepository';
 import { UnavailableRegionSource } from '../features/smartJoin/regionSource';
@@ -56,6 +64,10 @@ export class AppContext {
   readonly regions: UnavailableRegionSource;
   readonly backup: BackupService;
   readonly apiProbe: ApiProbe;
+  readonly privateServers: PrivateServersApi;
+  readonly search: SearchApi;
+  readonly friends: FriendsApi;
+  readonly presence: PresenceApi;
   readonly liveStats: LiveStatsService;
   readonly smartJoin: SmartJoinService;
 
@@ -72,6 +84,30 @@ export class AppContext {
 
   /** The most recent Smart Join plan, kept so the UI can explain the choice. */
   lastPlan: SmartJoinPlan | null = null;
+
+  /** The account's private servers, loaded on request rather than on every state build. */
+  privateServerState: PrivateServerState = EMPTY_PRIVATE_SERVERS;
+
+  /**
+   * Access codes for the private servers joinable at the current place.
+   *
+   * In memory, in the service worker, and nowhere else. A code grants entry to somebody
+   * private server, so it never enters AppState (which every surface copies) and never
+   * reaches storage (which outlives the session).
+   */
+  readonly privateServerCodes = new Map<number, string>();
+
+  /**
+   * The last presence lookup. Session-scoped and never persisted: where other people are
+   * is not something this extension keeps.
+   */
+  presenceSummary: PresenceSummary | null = null;
+
+  /** The profile last asked about. Session-scoped: nobody else's friend list is kept. */
+  profileState: ProfileState = EMPTY_PROFILE;
+
+  /** The last experience search, kept so reopening the tool does not re-query Roblox. */
+  searchState: SearchState = EMPTY_SEARCH;
 
   /** Results of the last Developer Mode API probe. */
   lastProbe: ApiProbeResult[] | null = null;
@@ -99,6 +135,10 @@ export class AppContext {
     this.join = new JoinService(this.tabs);
     this.regions = new UnavailableRegionSource();
     this.apiProbe = new ApiProbe(this.http);
+    this.privateServers = new PrivateServersApi(this.http);
+    this.search = new SearchApi(this.http);
+    this.friends = new FriendsApi(this.http);
+    this.presence = new PresenceApi(this.http);
     this.liveStats = new LiveStatsService(this.http);
     this.backup = new BackupService(
       this.settings,

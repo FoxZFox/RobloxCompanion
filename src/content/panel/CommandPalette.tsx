@@ -7,6 +7,11 @@ interface Props {
   onClose: () => void;
 }
 
+const LIST_ID = 'rc-palette-list';
+
+/** Stable per command, so `aria-activedescendant` can point at a row that exists. */
+const rowId = (commandId: string): string => `rc-cmd-${commandId}`;
+
 /**
  * Ctrl+K palette (spec sections 40 and 41).
  *
@@ -25,8 +30,19 @@ export function CommandPalette({ ctx, onClose }: Props): React.JSX.Element {
   // Any change to the query invalidates the previous highlight position.
   useEffect(() => setSelected(0), [query]);
 
+  /*
+   * Take focus on open and hand it back on close.
+   *
+   * Returning it matters more here than in an ordinary dialog: the palette is opened by a
+   * keystroke from anywhere on the page, so whoever pressed Ctrl+K was in the middle of
+   * something. `getRootNode()` rather than `document` because focus inside a shadow root
+   * reads as the host element from outside it.
+   */
   useEffect(() => {
+    const root = inputRef.current?.getRootNode() as DocumentOrShadowRoot | undefined;
+    const previous = root?.activeElement as HTMLElement | null;
     inputRef.current?.focus();
+    return () => previous?.focus?.();
   }, []);
 
   // Keep the highlighted row visible while arrowing through a long list.
@@ -57,6 +73,13 @@ export function CommandPalette({ ctx, onClose }: Props): React.JSX.Element {
     } else if (event.key === 'Escape') {
       event.preventDefault();
       onClose();
+    } else if (event.key === 'Tab') {
+      /*
+       * The dialog holds exactly one focusable element, so there is nowhere for Tab to go
+       * that is not the Roblox page behind it - which would leave an open palette that no
+       * longer answers the keyboard. Swallowing Tab is the whole focus trap.
+       */
+      event.preventDefault();
     }
   };
 
@@ -65,20 +88,31 @@ export function CommandPalette({ ctx, onClose }: Props): React.JSX.Element {
       <div
         className="rc-palette"
         role="dialog"
+        aria-modal="true"
         aria-label="Command palette"
         onPointerDown={(event) => event.stopPropagation()}
       >
+        {/*
+          The combobox pattern, which is what lets one input drive a list nobody ever
+          focuses: keyboard focus stays here throughout, and `aria-activedescendant` is
+          how a screen reader is told which row the arrow keys are on.
+        */}
         <input
           ref={inputRef}
           className="rc-palette__input"
           value={query}
           placeholder="Type a command…"
           aria-label="Search commands"
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls={LIST_ID}
+          aria-autocomplete="list"
+          {...(results[selected] ? { 'aria-activedescendant': rowId(results[selected].command.id) } : {})}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={onKeyDown}
         />
 
-        <div className="rc-palette__list" ref={listRef}>
+        <div className="rc-palette__list" id={LIST_ID} role="listbox" aria-label="Commands" ref={listRef}>
           {results.length === 0 ? (
             <div className="rc-palette__empty">
               Nothing matches “{query}”.
@@ -93,9 +127,15 @@ export function CommandPalette({ ctx, onClose }: Props): React.JSX.Element {
             </div>
           ) : (
             results.map((hit, index) => (
-              <button
+              /*
+               * A row is an option, not a button: giving each one focus would take it off
+               * the input, and the input is what the arrow keys and typing belong to.
+               */
+              <div
                 key={hit.command.id}
-                type="button"
+                id={rowId(hit.command.id)}
+                role="option"
+                aria-selected={index === selected}
                 data-index={index}
                 className={`rc-palette__row${index === selected ? ' rc-palette__row--on' : ''}`}
                 onPointerEnter={() => setSelected(index)}
@@ -115,7 +155,7 @@ export function CommandPalette({ ctx, onClose }: Props): React.JSX.Element {
                   ) : null}
                 </span>
                 <span className="rc-palette__section">{hit.command.section}</span>
-              </button>
+              </div>
             ))
           )}
         </div>

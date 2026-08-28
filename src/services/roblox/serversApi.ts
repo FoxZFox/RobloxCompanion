@@ -4,9 +4,14 @@ import { AppError } from '../../utils/errors';
 /**
  * Shape returned by GET /v1/games/{placeId}/servers/Public - verified against live traffic.
  *
- * This really is everything Roblox gives us. There is no region, no uptime, no version and
- * no player list: `playerTokens` is present in the schema but comes back empty, which is
- * why blacklist membership can only ever answer "unknown" (spec section 13).
+ * There is no region, no uptime and no version. There is no player list either: `players`
+ * comes back empty. `playerTokens` does arrive populated - one opaque token per player -
+ * but a token is not an identity, and the only way to attach a name to one is to
+ * fingerprint the avatar thumbnail it renders, which section 13 forbids. Blacklist
+ * membership therefore answers "unknown" as a matter of policy, not of capability.
+ *
+ * The tokens are deliberately not typed into this interface: nothing in the extension may
+ * consume them, and leaving them out is the cheapest way to keep it that way.
  */
 export interface RawServer {
   id: string;

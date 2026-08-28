@@ -1,6 +1,11 @@
 import type { AppState, HealthSummary, ScanState } from '../models/messages';
 import type { ServerView } from '../models/server';
-import { checkServerMembership } from '../features/playerBlacklist/blacklistCheck';
+import type { BlacklistCheck } from '../models/blacklist';
+import {
+  detectedIn,
+  undeterminable,
+  type PresenceSummary,
+} from '../features/playerBlacklist/presence';
 import { flagsForPlace } from '../models/flags';
 import { summarise } from '../features/playtime/playtime';
 import { buildFlaggedViews, buildViews } from '../features/servers/liveness';
@@ -31,6 +36,10 @@ export async function buildState(
       customFlags: [],
       allCustomFlags: await context.flags.list(),
       apiProbe: context.lastProbe,
+      presence: context.presenceSummary,
+      privateServers: context.privateServerState,
+      search: context.searchState,
+      profile: context.profileState,
       liveStats: null,
       playtime: summarise(await context.playtime.list(), Date.now()),
       openSession: await context.playtime.openSession(),
@@ -53,7 +62,13 @@ export async function buildState(
   ]);
 
   const outcome = context.getScan(placeId);
-  const allViews = buildViews(placeId, outcome, reports);
+  /*
+   * Presence is folded in here rather than inside buildViews, so a server view stays a
+   * function of the scan and the user's own reports. What Roblox happened to disclose
+   * about somebody's whereabouts is a separate fact, layered on top and easily removed
+   * if the disclosure stops.
+   */
+  const allViews = withPresence(buildViews(placeId, outcome, reports), context);
   const visible = sortViews(
     applyFilters(allViews, settings.serverBrowser),
     settings.serverBrowser.sort,
@@ -72,6 +87,10 @@ export async function buildState(
     customFlags: flagsForPlace(allCustomFlags, placeId),
     allCustomFlags,
     apiProbe: context.lastProbe,
+    presence: context.presenceSummary,
+    privateServers: context.privateServerState,
+    search: context.searchState,
+    profile: context.profileState,
     liveStats: experience.universeId
       ? (context.statsCache.get(experience.universeId) ?? null)
       : null,
@@ -83,14 +102,66 @@ export async function buildState(
         : lastJoined
       : null,
     smartJoinPlan: context.lastPlan,
-    health: summarize(allViews, blacklistedIds),
+    health: summarize(allViews, blacklistedIds, context.presenceSummary),
     scan: scanState,
     transport: context.transport.state,
     totalShown: visible.length,
   };
 }
 
-function summarize(views: ServerView[], blacklistedIds: number[]): HealthSummary {
+/**
+ * Marks servers a blacklisted player was positively placed in.
+ *
+ * Only the ones Roblox actually disclosed. A server with no mark is not clear - it is
+ * unexamined, which is what the summary below keeps saying out loud.
+ */
+function withPresence(views: ServerView[], context: AppContext): ServerView[] {
+  const players = context.presenceSummary?.players;
+  if (!players?.length) return views;
+
+  return views.map((view) => {
+    const found = detectedIn(view.jobId, players);
+    return found.length > 0 ? { ...view, blacklisted: found } : view;
+  });
+}
+
+/**
+ * The verdict for the experience as a whole.
+ *
+ * `none-detected` is reserved for the one case where it is true: every blacklisted player
+ * was asked about, Roblox disclosed a location for all of them, and none was here. The
+ * moment a single person's location is withheld the answer is `unknown`, however many
+ * others came back clean - because the one who was withheld is the one you would want to
+ * know about.
+ */
+function summariseBlacklist(
+  views: ServerView[],
+  blacklistedIds: number[],
+  presence: PresenceSummary | null,
+): BlacklistCheck {
+  if (blacklistedIds.length === 0) {
+    return { verdict: 'none-detected', detected: [], undeterminable: 0 };
+  }
+  if (!presence) {
+    return { verdict: 'unknown', detected: [], undeterminable: blacklistedIds.length };
+  }
+
+  const detected = [...new Set(views.flatMap((view) => view.blacklisted ?? []))];
+  const unknownCount = undeterminable(presence);
+
+  if (detected.length > 0) return { verdict: 'detected', detected, undeterminable: unknownCount };
+  return {
+    verdict: unknownCount > 0 ? 'unknown' : 'none-detected',
+    detected: [],
+    undeterminable: unknownCount,
+  };
+}
+
+function summarize(
+  views: ServerView[],
+  blacklistedIds: number[],
+  presence: PresenceSummary | null,
+): HealthSummary {
   let clean = 0;
   let flagged = 0;
   let unknown = 0;
@@ -109,9 +180,7 @@ function summarize(views: ServerView[], blacklistedIds: number[]): HealthSummary
     unknown,
     favorites,
     blacklistedPlayers: blacklistedIds.length,
-    // Server-wide rather than per-server: Roblox discloses no player identities for
-    // public servers, so the only truthful summary is "we could not check".
-    blacklistCheck: checkServerMembership({ id: 'aggregate', playerTokens: [] }, blacklistedIds),
+    blacklistCheck: summariseBlacklist(views, blacklistedIds, presence),
   };
 }
 

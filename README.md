@@ -20,17 +20,18 @@ Smart Join → เล่น → เจอ exploiter → Alt+Tab → กด ⚠ �
 | 2 | Server Browser | ✅ |
 | 3 | Smart Join | ✅ |
 | 4 | Custom flags + notes | ✅ |
-| 5 | Import / Export | 🟡 local เสร็จ · presence ค้างรอ verify |
-| 6 | Private Servers | 🔒 บล็อกไว้จนกว่าจะ verify API |
-| 7 | Playtime + live stats | 🟡 เสร็จ · quick search ค้าง |
-| 8–9 | Profiles / Avatar / Themes / Trading | ⬜ |
-| 10 | Command Palette | ✅ · a11y / i18n ค้าง |
+| 5 | Import / Export + Presence | ✅ |
+| 6 | Private Servers | ✅ list + 🔒 join |
+| 7 | Playtime + live stats + 🔍 quick search | ✅ |
+| 8 | Themes + 👤 Profiles | ✅ · Avatar ⬜ |
+| 9 | Trading | ⬜ |
+| 10 | Polish | 🟡 Command Palette ✅ · a11y panel/palette ✅ · i18n ค้าง |
 
 **ใช้งานได้แล้วตอนนี้:** browse/paginate/filter public servers · **⚡ Smart Join + Explain Why** ·
 Join Lowest · Random · Rejoin · Server History · flag `Clean / Exploiter / Bugged / Avoid` ·
 **custom flags ของตัวเอง** · **server notes** · favourite · skip flagged server ตอน auto-join ·
 Player Blacklist (local) · **Import / Export JSON** · **Playtime** · **Live like/dislike** ·
-**⌘K Command Palette** · **Developer Mode API probe** · Settings · Dashboard
+**⌘K Command Palette** · **🎨 Themes** · **🔒 Private servers ที่เราเป็นเจ้าของ** · **Developer Mode API probe** · Settings · Dashboard
 
 > 📌 **จะทำงานต่อ อ่าน [`HANDOFF.md`](HANDOFF.md) ก่อน** — สรุปว่าทำถึงไหน อะไรบล็อกอยู่
 > บทเรียนที่แลกมาแพง และกฎที่ต้องรักษา
@@ -49,7 +50,7 @@ npm run build      # → dist/
 | `npm run build` | build ลง `dist/` (~2 วิ) |
 | `npm run watch` | rebuild อัตโนมัติเมื่อแก้ไฟล์ใน `src/` |
 | `npm run typecheck` | `tsc --noEmit` (strict + `exactOptionalPropertyTypes`) |
-| `npm test` | vitest — 269 tests |
+| `npm test` | vitest — 364 tests |
 | `npm run check` | typecheck + test + build |
 
 ไอคอนอยู่ใน `public/icons/` แล้ว สร้างใหม่ได้ด้วย `node tools/make-icons.mjs`
@@ -189,7 +190,7 @@ panel render ใน Shadow DOM root เพราะ CSS ของ roblox.com ก
 └─────────────────────────────────┘
 ```
 
-ปุ่มที่ยังไม่ทำ (Private) แสดงเป็น **disabled พร้อมบอกว่าอยู่เฟสไหน** ไม่ซ่อน
+ปุ่มที่ยังทำไม่ได้แสดงเป็น **disabled พร้อมบอกว่าอยู่เฟสไหน** ไม่ซ่อน
 เพื่อให้เห็นชัดว่าตอนนี้ extension ทำอะไรได้จริงบ้าง
 
 ### Quick Action Bar
@@ -293,7 +294,7 @@ extension นี้ **จงใจ** เขียน label ให้ตรงก
 | `first seen 18m ago` ไม่ใช่ `Uptime 18m` | Roblox ไม่บอกเวลาที่เซิร์ฟเริ่ม — นี่คือครั้งแรกที่ **เรา** เห็นมัน (ใช้เป็น proxy ของ server age) |
 | `Region —` ถ้ายังไม่ probe | ไม่เดา · `unmatched` ถ้า probe แล้วแต่ตารางไม่ครอบคลุม |
 | `แสดง N จาก M เซิร์ฟที่โหลดมา` | Roblox cap pagination ที่ ~150–500 เซิร์ฟแล้วคืน cursor `null` เอง staff ยืนยันว่าตั้งใจ |
-| `Player identities unavailable` **ไม่ใช่** `✓ Safe` | `playerTokens` ว่างเสมอ + Presence API คืน `gameId` เฉพาะเมื่อ privacy ของเป้าหมายอนุญาต → ส่วนใหญ่ตอบไม่ได้ |
+| `Player identities unavailable` **ไม่ใช่** `✓ Safe` | Roblox คืน `playerTokens` มาจริง (แก้ 28 ส.ค. 2026) แต่จะรู้ว่าเป็นใครต้องเอา thumbnail ไปเทียบทีละคน = **ย้อนสิ่งที่ Roblox ตั้งใจปิด** → เราไม่ทำ (§13) · ส่วน Presence คืน `gameId` เฉพาะเมื่อ privacy ของเป้าหมายอนุญาต |
 | `not in the last scan` ไม่ใช่ `Offline` | เพราะ pagination cap การไม่เจอในสแกน **ไม่ได้แปลว่าเซิร์ฟปิด** |
 
 ไม่มี API เช็ค JobId เดี่ยว ๆ — ต้องสแกนแล้ว match เอง
@@ -357,6 +358,7 @@ src/
 ├─ features/
 │  ├─ servers/       list · filters · liveness · join
 │  ├─ smartJoin/     scoring (pure) · regionTable · regionProbe · SmartJoinService
+│  ├─ themes/        colors (คณิต + ด่านตรวจ hex) · presets · robloxSurfaces · buildThemeCss
 │  └─ playerBlacklist/
 ├─ background/  service worker — เจ้าของ state ทั้งหมด
 ├─ content/     content script (ISOLATED) — fetch proxy + injectors
@@ -412,6 +414,7 @@ key ที่ใช้: `rc:v` · `rc:settings` · `rc:transport` · `rc:blackli
 |---|---|---|
 | `src/main-world/index.ts` | signature ของ `Roblox.GameLauncher.joinGameInstance` | toast "Used the deeplink fallback" |
 | `src/content/injectors/quickActionBar.ts` | selector ของปุ่ม Play (`PLAY_ANCHORS`) | แถบไม่โผล่ในหน้าเกม (panel ยังปกติ) |
+| `src/features/themes/robloxSurfaces.ts` | class name ที่ธีมไปทาสี | ธีมติดไม่ครบ — tool 🎨 บอกเองว่าส่วนไหนไม่ match |
 | `src/services/roblox/endpoints.ts` | endpoint + query params + response shape | error "โหลดรายชื่อเซิร์ฟเวอร์ไม่สำเร็จ" |
 | `src/features/smartJoin/regionData.ts` | IP range ของ datacenter (Roblox ย้าย/เพิ่มได้เงียบ ๆ) | region ขึ้น `unmatched` มากผิดปกติ |
 
@@ -445,7 +448,48 @@ Settings → Backup → export ทั้ง settings + flags + blacklist เป�
 **import เป็นการ merge ไม่ใช่ replace** — restore backup เก่าหรือรับ flag ชุดของเพื่อนมา
 แล้วต้องไม่เสีย report ที่มีอยู่ · ถ้าชนกัน **ของในเครื่องชนะ** เพราะมันคือสิ่งที่คุณเห็นมาเอง
 
+**backup เวอร์ชันเก่า import ได้** (ปฏิเสธเฉพาะไฟล์ที่ใหม่กว่า build นี้ ซึ่งเราอ่านไม่ออกจริง ๆ)
+· feature ที่ยังไม่มีตอน export ไฟล์นั้นจะไม่ถูกไฟล์เก่ากดปิดไว้ — ใช้กติกาเดียวกับ storage migration
+
 ไฟล์สร้างและดาวน์โหลดในเบราว์เซอร์ล้วน ไม่มีการอัปโหลดไปไหน
+
+## 🎨 Themes
+
+Settings → Theme หรือ **tool 🎨 ใน panel** (หรือ `Ctrl+K` → *Change theme*)
+
+6 palette ที่วาดขึ้นเองสำหรับโปรเจกต์นี้ — **Midnight · Carbon · Ember · Forest · Paper ·
+Daylight** — บวก **Custom** ที่เลือกเอง 3 สี · เริ่มต้นคือ **Off** ไม่แตะสีอะไรจนกว่าจะเลือก
+
+> **สีล้วน** ไม่มีรูป ไม่มีฟอนต์ ไม่มี asset ใด ๆ ทั้งสิ้น และไม่ได้ลอกธีมของใครมา (§23)
+> ธีมเปลี่ยนได้แค่ `background-color` / `color` / `border-color` เท่านั้น — **ขยับ ซ่อน หรือ
+> ปรับขนาดอะไรไม่ได้เลย** มี test บังคับกฎนี้ไว้ ไม่ใช่แค่เขียนไว้ในคอมเมนต์
+
+**เลือก 3 สี ที่เหลือคำนวณให้** — surface, border, muted text และสีตัวอักษรบนปุ่ม derive จาก
+background + text + accent ทั้งหมด palette จึงขัดกันเองไม่ได้ · เลือก accent เป็นเหลืองอ่อน
+ตัวอักษรบนปุ่มจะกลายเป็นสีเข้มให้เอง เพราะคำนวณจาก contrast จริง ไม่ได้ fix ไว้ตอนวาด palette
+
+**"Also recolour roblox.com itself"** — ปิดไว้ ธีมยังทาให้ทุกอย่างที่ extension วาดเองครบ
+เปิดไว้ ถึงจะไปทาหน้า Roblox ด้วย ซึ่ง**ผูกกับ class name ของ Roblox ที่เขาเปลี่ยนเมื่อไหร่ก็ได้**
+
+**palette ต้องตรงกับธีมของ Roblox** — palette เข้ม (`for dark`) ใช้กับ Roblox โหมดมืด · palette สว่าง
+(`for light`) ใช้กับโหมดสว่าง · ถ้าไม่ตรง extension จะ**หยุดทาหน้า Roblox เองพร้อมบอกเหตุผล**
+(ของเราเองยังทาครบ) เพราะ CSS ของเราตั้งได้แค่สี → ทาพื้นหลังเข้มใต้ตัวอักษรเข้มของ Roblox
+เนื้อหาจะยังอยู่ครบแต่**อ่านไม่เห็น** ซึ่งดูเหมือนหน้าเว็บพัง ทั้งที่ไม่มีอะไรถูกซ่อน
+· สลับธีมของ Roblox ตอนไหน extension ปรับตามทันทีโดยไม่ต้อง reload
+
+**เราไม่เดาว่าติดหรือไม่ติด** — tool 🎨 ใน panel รายงานสองอย่างที่วัดมาจริง:
+
+| รายงาน | วัดยังไง |
+|---|---|
+| `match 4 จาก 6 ส่วนบนหน้านี้` | นับ `querySelectorAll` ของทุก selector group บนหน้าที่เปิดอยู่ |
+| `โดน CSP บล็อก` | ฉีด `<style>` แล้วอ่าน `style.sheet` กลับ — ถ้าเป็น `null` คือหน้าเว็บปฏิเสธ |
+
+ส่วนไหน `no match here` ให้ดูก่อนว่าหน้านั้นมีส่วนนั้นจริงไหม (หน้าโปรไฟล์ไม่มี game card อยู่แล้ว)
+ถ้าหน้าเกมก็ไม่ match แปลว่า Roblox เปลี่ยนชื่อ class → แก้ที่
+`src/features/themes/robloxSurfaces.ts` ที่เดียวจบ
+
+**สีที่ไม่ใช่ hex จะถูกปฏิเสธก่อนถึงหน้าเว็บเสมอ** — settings เข้ามาทาง import backup ได้
+ถ้าไม่กรอง ค่าที่มี `}` จะปิด rule ของเราแล้วเขียน CSS ของตัวเองลงหน้าที่คุณล็อกอินอยู่
 
 ## 🔍 Developer Mode → API probe
 

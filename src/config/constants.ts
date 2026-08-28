@@ -50,7 +50,12 @@ export const PRUNE_AGE_MS = 24 * 60 * 60 * 1000;
 export const PRUNE_ALARM_NAME = 'rc:prune';
 export const PRUNE_ALARM_MINUTES = 360;
 
-export const STORAGE_SCHEMA_VERSION = 3;
+/**
+ * Bumped whenever a feature ships switched on by default, so the migration can unpin its
+ * flag - a settings object written before the feature existed would otherwise keep it off
+ * forever. 4 was Themes, 5 Private Servers, 6 Quick Search, 7 Profiles. See FEATURES_INTRODUCED_AT.
+ */
+export const STORAGE_SCHEMA_VERSION = 7;
 
 /** Give up injecting into a Roblox page after this long rather than retrying forever. */
 export const INJECT_TIMEOUT_MS = 8000;

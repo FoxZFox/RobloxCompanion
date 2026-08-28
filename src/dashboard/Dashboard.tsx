@@ -1,6 +1,7 @@
 import '../components/theme.css';
 import '../components/CommandCenter.css';
 import { useAppState } from '../hooks/useAppState';
+import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { AppState } from '../models/messages';
 import { STATUS_META } from '../models/server';
 import { formatAgo, formatTime, shortJobId } from '../utils/format';
@@ -8,12 +9,13 @@ import { formatAgo, formatTime, shortJobId } from '../utils/format';
 /**
  * Full-page overview (spec section 39).
  *
- * Phase 2 fills in the panels backed by data that actually exists. Playtime, avatar,
- * trading and themes are listed as upcoming rather than shown as empty widgets, so the
- * page never implies it is tracking something it is not.
+ * Phase 2 fills in the panels backed by data that actually exists. Profiles, avatar and
+ * trading are listed as upcoming rather than shown as empty widgets, so the page never
+ * implies it is tracking something it is not.
  */
 export function Dashboard(): React.JSX.Element {
   const { state, error } = useAppState();
+  useThemeTokens(state);
 
   if (!state) {
     return (
@@ -103,8 +105,8 @@ export function Dashboard(): React.JSX.Element {
         <section className="rc-card">
           <div className="rc-card__label">Coming later</div>
           <div className="rc-meta">
-            Playtime (phase 7) · Avatar (phase 8) · Themes (phase 8) · Trading (phase 9). These are
-            listed rather than shown as empty widgets, because nothing is being tracked for them yet.
+            Profiles (phase 8) · Avatar (phase 8) · Trading (phase 9). These are listed rather than
+            shown as empty widgets, because nothing is being tracked for them yet.
           </div>
         </section>
       </div>

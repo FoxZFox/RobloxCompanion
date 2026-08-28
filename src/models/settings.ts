@@ -2,6 +2,8 @@ import { DEFAULT_SCAN_PAGES } from '../config/constants';
 import type { ServerStatus } from './server';
 import type { SmartJoinPatch, SmartJoinSettings } from './smartJoin';
 import { DEFAULT_SMART_JOIN } from './smartJoin';
+import type { ThemePatch, ThemeSettings } from './theme';
+import { DEFAULT_THEME, mergeTheme } from './theme';
 
 export type SortOrder = 'Asc' | 'Desc';
 /**
@@ -29,6 +31,8 @@ export interface FeatureFlags {
   serverHistory: boolean;
   playerBlacklist: boolean;
   quickActionBar: boolean;
+  privateServers: boolean;
+  quickSearch: boolean;
   themes: boolean;
   profiles: boolean;
   avatar: boolean;
@@ -79,6 +83,7 @@ export interface Settings {
   smartJoin: SmartJoinSettings;
   avoid: AvoidSettings;
   privacy: PrivacySettings;
+  theme: ThemeSettings;
   surface: SurfacePreference;
   panel: PanelSettings;
   developerMode: boolean;
@@ -91,8 +96,13 @@ export const DEFAULT_SETTINGS: Settings = {
     serverHistory: true,
     playerBlacklist: true,
     quickActionBar: true,
-    themes: false, // phase 8
-    profiles: false, // phase 8
+    privateServers: true,
+    quickSearch: true,
+    // On, but a theme still has to be chosen before anything is repainted
+    // (DEFAULT_THEME.preset is 'off'). Shipping this on is what makes the Themes tool
+    // findable; shipping it applied would repaint someone's Roblox uninvited.
+    themes: true,
+    profiles: true,
     avatar: false, // phase 8
     trading: false, // phase 9
     playtime: true,
@@ -119,6 +129,7 @@ export const DEFAULT_SETTINGS: Settings = {
     shareReportsWithCommunity: false,
     allowPresenceChecks: false,
   },
+  theme: DEFAULT_THEME,
   surface: 'inpage',
   panel: {
     x: 0,
@@ -131,15 +142,17 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 /**
- * One level of partiality is enough for every branch except Smart Join, which nests
- * twice, so that key is excluded from the mapped type and given its own shape.
+ * One level of partiality is enough for every branch except Smart Join and the theme,
+ * which nest twice, so those keys are excluded from the mapped type and given their own
+ * shapes.
  */
 export type SettingsPatch = {
-  [K in keyof Omit<Settings, 'smartJoin'>]?: Settings[K] extends object
+  [K in keyof Omit<Settings, 'smartJoin' | 'theme'>]?: Settings[K] extends object
     ? Partial<Settings[K]>
     : Settings[K];
 } & {
   smartJoin?: SmartJoinPatch;
+  theme?: ThemePatch;
 };
 
 /**
@@ -167,6 +180,15 @@ export function mergePatch(base: SettingsPatch, patch: SettingsPatch): SettingsP
         : {}),
     };
   }
+  if (patch.theme) {
+    next.theme = {
+      ...base.theme,
+      ...patch.theme,
+      // The custom palette nests a level deeper, so a patch changing one colour must not
+      // drop the other two.
+      ...(patch.theme.custom ? { custom: { ...base.theme?.custom, ...patch.theme.custom } } : {}),
+    };
+  }
   if (patch.surface !== undefined) next.surface = patch.surface;
   if (patch.developerMode !== undefined) next.developerMode = patch.developerMode;
 
@@ -181,6 +203,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     smartJoin: mergeSmartJoin(base.smartJoin, patch.smartJoin),
     avoid: { ...base.avoid, ...patch.avoid },
     privacy: { ...base.privacy, ...patch.privacy },
+    theme: mergeTheme(base.theme, patch.theme),
     surface: patch.surface ?? base.surface,
     panel: { ...base.panel, ...patch.panel },
     developerMode: patch.developerMode ?? base.developerMode,

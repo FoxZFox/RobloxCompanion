@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { describeCheck } from '../features/playerBlacklist/blacklistCheck';
+import { describePresence } from '../features/playerBlacklist/presence';
 import type { AppState, UiRequest } from '../models/messages';
 import { BLACKLIST_REASONS, REASON_LABEL, type BlacklistReason } from '../models/blacklist';
 import { STATUS_META } from '../models/server';
@@ -189,13 +190,23 @@ export function BlacklistTab({ state, busy, send }: TabProps): React.JSX.Element
       </form>
 
       {/*
-        The honest disclosure required by spec section 13. Roblox returns an empty
-        playerTokens array and only discloses presence for users whose privacy allows it,
-        so we cannot tell the user a server is clear of these people.
+        The honest disclosure required by spec section 13, in two parts now that presence
+        exists. Roblox does not publish who is in a public server, and identifying them
+        from the opaque tokens it does publish would mean fingerprinting avatar
+        thumbnails - reversing a privacy decision rather than reading a published fact.
+        Presence is the one route that stays on the right side of that line: it reports
+        only what each person's own settings allow, so it answers for a minority and says
+        how large that minority was.
       */}
       <div className="rc-banner" style={{ marginTop: 12 }}>
-        <span>{describeCheck(state.health.blacklistCheck)} — Roblox does not disclose who is in a public server, so this list cannot be checked against the server browser.</span>
+        <span>
+          {describeCheck(state.health.blacklistCheck)} — Roblox does not publish who is in a
+          public server. Identifying them anyway would mean matching avatar thumbnails
+          against people on this list, which this extension will not do.
+        </span>
       </div>
+
+      <PresenceCheck state={state} busy={busy} send={send} />
 
       {state.blacklist.length === 0 ? (
         <div className="rc-empty">
@@ -231,5 +242,92 @@ export function BlacklistTab({ state, busy, send }: TabProps): React.JSX.Element
         ))
       )}
     </>
+  );
+}
+
+/**
+ * The presence lookup for blacklisted players (phase 5).
+ *
+ * Three things had to be true before this could exist at all: the endpoint verified, the
+ * user opted in, and the host permission granted. Where each is missing, the button says
+ * which one rather than failing.
+ */
+function PresenceCheck({
+  state,
+  busy,
+  send,
+}: {
+  state: AppState;
+  busy: boolean;
+  send: (request: UiRequest) => void;
+}): React.JSX.Element | null {
+  if (state.blacklist.length === 0) return null;
+
+  const allowed = state.settings.privacy.allowPresenceChecks;
+  const summary = state.presence;
+
+  return (
+    <div className="rc-card" style={{ marginTop: 8, marginBottom: 8 }}>
+      <div className="rc-card__label">Where are they now?</div>
+
+      {!allowed ? (
+        <p className="rc-header__sub" style={{ marginTop: 0 }}>
+          Off by default: this asks Roblox about other people, so it waits until you turn on
+          “Allow presence lookups” in Settings.
+        </p>
+      ) : (
+        <>
+          <p className="rc-header__sub" style={{ marginTop: 0 }}>
+            {summary
+              ? describePresence(summary)
+              : 'Asks Roblox where the people on this list are. It answers only for those whose privacy settings allow it.'}
+          </p>
+
+          {summary?.players
+            .filter((player) => player.kind !== 'offline' && player.kind !== 'unknown')
+            .map((player) => {
+              const known = state.blacklist.find((entry) => entry.userId === player.userId);
+              return (
+                <div className="rc-meta" key={player.userId}>
+                  <strong>{known?.usernameAtReport ?? player.userId}</strong>
+                  <span className="rc-meta__sep">·</span>
+                  <span>{player.kind === 'in-game' ? 'in a game' : 'on the website'}</span>
+                  {player.lastLocation ? (
+                    <>
+                      <span className="rc-meta__sep">·</span>
+                      <span>{player.lastLocation}</span>
+                    </>
+                  ) : null}
+                  {/*
+                    The one case that changes a decision: Roblox named the exact server, so
+                    that server can be marked in the browser above.
+                  */}
+                  {player.jobId ? (
+                    <>
+                      <span className="rc-meta__sep">·</span>
+                      <span className="rc-chip rc-chip--exploiters">server disclosed</span>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
+        </>
+      )}
+
+      <div className="rc-btn-row">
+        <button
+          type="button"
+          className="rc-btn"
+          disabled={busy || !allowed}
+          title={allowed ? 'Ask Roblox once, now' : 'Turn on presence lookups in Settings first'}
+          onClick={() => send({ type: 'blacklist/checkPresence' })}
+        >
+          Check now
+        </button>
+        <button type="button" className="rc-btn" onClick={() => send({ type: 'ui/openOptions' })}>
+          Settings
+        </button>
+      </div>
+    </div>
   );
 }

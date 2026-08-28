@@ -38,11 +38,16 @@
 | Permission | สำหรับ | phase | optional? |
 |---|---|---|---|
 | `notifications` | trade / private server ready (§43) | 9 | ✅ **optional** — ขอตอนผู้ใช้เปิด feature |
-| `https://presence.roblox.com/*` | last online, blacklist presence check | 5, 8 | ✅ optional |
-| `https://friends.roblox.com/*` | mutual friends | 8 | ✅ optional |
-| `https://avatar.roblox.com/*` | avatar sandbox / equip | 8 | ✅ optional |
-| `https://trades.roblox.com/*` | trading | 9 | ✅ optional |
-| `https://thumbnails.roblox.com/*` | รูป avatar ใน blacklist page | 5 | ✅ optional |
+| `https://presence.roblox.com/*` | last online, blacklist presence check | 5, 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
+| `https://friends.roblox.com/*` | mutual friends | 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
+| `https://avatar.roblox.com/*` | avatar sandbox / equip | 8 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
+| `https://trades.roblox.com/*` | trading | 9 | ✅ **อยู่ใน `optional_host_permissions` แล้ว** (v0.3.0) |
+| `https://thumbnails.roblox.com/*` | รูป avatar ใน blacklist page | 5 | ✅ optional (ยังไม่ประกาศ) |
+
+**4 host ที่ประกาศแล้วยัง "ไม่ได้ขอ" จนกว่าผู้ใช้จะกด** — Settings → Developer mode →
+**Grant** (ปุ่มเรียก `chrome.permissions.request()` ตรงจาก click handler เพราะ gesture
+ไม่ข้าม `await`) · มีปุ่ม **Revoke** คู่กันเสมอ ซึ่งสำคัญเป็นพิเศษกับ `trades` ที่อ่านกล่องเทรด
+· ตอนนี้มีแค่ **API probe** ที่ใช้ทั้งสี่ตัว และ probe **อ่านบัญชีของผู้ใช้เองเท่านั้น**
 
 > feature ที่แตะข้อมูลอ่อนไหว (presence, friends, trades) จะขอ host permission
 > **ตอนผู้ใช้เปิด feature นั้นจริง ๆ** ผ่าน `chrome.permissions.request()` ไม่ขอล่วงหน้าตอนติดตั้ง

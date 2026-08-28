@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../models/settings';
+import { EMPTY_PRIVATE_SERVERS } from '../../models/privateServer';
+import { EMPTY_SEARCH } from '../../models/search';
+import { EMPTY_PROFILE } from '../../models/profile';
 import type { AppState } from '../../models/messages';
 import { detectPageContext, parseUserId } from '../../utils/robloxUrl';
 import { fuzzyMatch, highlight } from './fuzzy';
@@ -93,6 +96,10 @@ function makeState(patch: Partial<AppState> = {}): AppState {
     history: [],
     blacklist: [],
     customFlags: [],
+    privateServers: EMPTY_PRIVATE_SERVERS,
+    search: EMPTY_SEARCH,
+    profile: EMPTY_PROFILE,
+    presence: null,
     allCustomFlags: [],
     apiProbe: null,
     liveStats: null,

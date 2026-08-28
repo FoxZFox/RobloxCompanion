@@ -2,21 +2,31 @@ import '../components/theme.css';
 import '../components/CommandCenter.css';
 import { FEATURES, isImplemented } from '../config/features';
 import { useAppState } from '../hooks/useAppState';
+import { useThemeTokens } from '../hooks/useThemeTokens';
 import type { UiRequest } from '../models/messages';
 import { SmartJoinSettings } from './SmartJoinSettings';
 import { FlagSettings } from './FlagSettings';
 import { DataSettings } from './DataSettings';
+import { ThemeSettings } from './ThemeSettings';
+import { ProfileSettings } from './ProfileSettings';
+import { OptionalAccess } from './OptionalAccess';
+import { OPTIONAL_ORIGINS } from '../services/roblox/endpoints';
+
+const PRESENCE = [OPTIONAL_ORIGINS.presence];
 
 /**
  * Settings (spec section 25).
  *
  * The feature list renders straight from config/features.ts, so a feature cannot exist
  * without a switch, and a switch cannot exist for a feature that has not been built:
- * anything above the shipped phase is rendered disabled with the phase named, rather
- * than offered and quietly doing nothing.
+ * anything unbuilt is rendered disabled with its phase named, rather than offered and
+ * quietly doing nothing. That last part only became true once each feature carried its
+ * own `shipped` flag - phases do not ship in order, and the watermark this used to read
+ * left every phase 8 and 9 toggle switchable and inert.
  */
 export function Options(): React.JSX.Element {
   const { state, busy, send } = useAppState();
+  useThemeTokens(state);
 
   const dispatch = (request: UiRequest): void => {
     void send(request);
@@ -90,6 +100,10 @@ export function Options(): React.JSX.Element {
         </Section>
 
         <SmartJoinSettings state={state} busy={busy} send={dispatch} />
+
+        <ThemeSettings state={state} busy={busy} send={dispatch} />
+
+        {settings.features.profiles ? <ProfileSettings /> : null}
 
         <FlagSettings state={state} busy={busy} send={dispatch} />
 
@@ -217,6 +231,12 @@ export function Options(): React.JSX.Element {
             Everything this extension records — server reports, history and your blacklist — is
             stored on this machine only. There is no backend and nothing is uploaded.
           </p>
+
+          <OptionalAccess origins={PRESENCE} label="Access to presence.roblox.com">
+            Presence is how the blacklist can answer "is this person in that server" at all.
+            It reads other people, so the host is not requested at install — and Roblox
+            only answers for those whose own privacy settings allow it.
+          </OptionalAccess>
 
           <Toggle
             label="Allow presence lookups"

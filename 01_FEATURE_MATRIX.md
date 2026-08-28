@@ -54,10 +54,10 @@ feature กลุ่มนี้ **ไม่ใช่** RoPro parity ส่ว�
 
 | Feature | Source/API | Feasibility | Backend? | Privacy Risk | Status | Notes |
 |---|---|---|---|---|---|---|
-| ตรวจว่าเกมเปิด private server ไหม | `GET /v1/private-servers/enabled-in-universe/{universeId}` → `privateServersEnabled` | ✅ | ไม่ | ไม่ | phase 6 | `docs-only` — ยังไม่ verify กับ traffic จริง |
-| หา private server ที่เราเป็นเจ้าของ | `GET /v1/vip-servers/my-private-servers` | ✅ | ไม่ | ไม่ | phase 6 | `docs-only` |
+| ตรวจว่าเกมเปิด private server ไหม | `GET /v1/private-servers/enabled-in-universe/{universeId}` → `privateServersEnabled` | ✅ | ไม่ | ไม่ | **✅ ทำแล้ว** | verified 28 ส.ค. 2026 |
+| หา private server ที่เราเป็นเจ้าของ | `GET /v1/vip-servers/my-private-servers` | ✅ | ไม่ | ไม่ | **✅ ทำแล้ว** | verified · ไม่มี accessCode มาด้วย (ใช้ endpoint ต่อ place แทน) |
 | สร้าง private server | `POST /v1/games/vip-servers/{universeId}` → `{vipServerId, accessCode}` | 🟡 | ไม่ | ไม่ | phase 6 | field ของ request body ต้อง verify จาก traffic จริงก่อน |
-| Join private server | `link` / `accessCode` จาก `PATCH /v1/vip-servers/{id}` | ✅ | ไม่ | ไม่ | phase 6 | |
+| Join private server | **`accessCode` จาก `GET /v1/games/{placeId}/private-servers`** | ✅ | ไม่ | ไม่ | **✅ ทำแล้ว** | ไม่ต้องใช้ PATCH เลย · code เก็บใน SW memory ไม่เข้า state ไม่ลง storage |
 | ตรวจ ฟรี vs เสียเงิน | ดู notes | 🟡 | ไม่ | ไม่ | phase 6 | ⚠️ **ตั้งแต่ 30 เม.ย. 2026 Roblox ให้ Premium/Plus subscriber สร้าง private server ฟรีแม้เกมตั้งราคาไว้** → ราคาต้องอ่าน **ต่อผู้ใช้** ไม่ใช่ต่อเกม |
 | Auto-buy private server ที่เสียเงิน | — | ❌ | — | — | **wont-do** | §8 — ทุก transaction ต้อง explicit confirm ของผู้ใช้เสมอ |
 
@@ -68,7 +68,7 @@ feature กลุ่มนี้ **ไม่ใช่** RoPro parity ส่ว�
 | เพิ่ม blacklist ด้วย username | `POST users.roblox.com/v1/usernames/users` | ✅ | ไม่ | local only | **phase 2** | resolve เป็น `userId` แล้วใช้ userId เป็น key (username เปลี่ยนได้) |
 | เก็บ encounter / reason / note | `chrome.storage.local` | ✅ | ไม่ | local only | **phase 2** | |
 | Import / Export blacklist | JSON + `schemaVersion` | ✅ | ไม่ | local only | phase 10 | §37 |
-| **ตรวจว่า blacklisted player อยู่เซิร์ฟไหน** | ดู notes | ⚠️ | ไม่ | — | **phase 2 (แสดง unknown)** | ⚠️ `playerTokens` **ว่างเปล่าเสมอ** แล้ว · Presence API คืน `gameId` เฉพาะเมื่อ privacy ของเป้าหมายอนุญาต → ส่วนใหญ่ตอบไม่ได้ **ต้องแสดง `Membership unknown` ห้ามแสดง `Safe`** (§13) |
+| **ตรวจว่า blacklisted player อยู่เซิร์ฟไหน** | ดู notes | ⚠️ | ไม่ | — | **phase 2 (แสดง unknown)** | ⚠️ `playerTokens` **มีมาจริง** (28 ส.ค. 2026) แต่ระบุตัวคนได้ต้อง fingerprint thumbnail = §13 ห้าม · Presence คืน `gameId` เฉพาะเมื่อ privacy อนุญาต → **ต้องแสดง `Membership unknown` ห้ามแสดง `Safe`** |
 | Presence check (subset ที่ทำได้) | `POST presence.roblox.com/v1/presence/users` | 🟡 | ไม่ | ปานกลาง | phase 5 | ได้เฉพาะ user ที่ตั้ง privacy ให้เห็น — opt-in และบอกผู้ใช้ว่า coverage ไม่ครบ |
 | Deanonymize hidden players | — | ❌ | — | — | **wont-do** | §13 ห้าม decode playerToken / avatar brute-force / thumbnail fingerprint เด็ดขาด |
 
@@ -77,7 +77,7 @@ feature กลุ่มนี้ **ไม่ใช่** RoPro parity ส่ว�
 | Feature | Source/API | Feasibility | Backend? | Privacy Risk | Status | Notes |
 |---|---|---|---|---|---|---|
 | Playtime tracking ต่อเกม | `chrome.tabs` + presence ของตัวเอง | 🟡 | ไม่ | local only | phase 7 | รู้แค่ตอนอยู่บนเว็บ/launch — วัดเวลาในเกมจริงไม่ได้ ต้องเขียน label ให้ตรง |
-| Quick search / quick play | omni-search API | ✅ | ไม่ | ไม่ | phase 7 | |
+| Quick search / quick play | omni-search API | ✅ | ไม่ | ไม่ | **✅ ทำแล้ว** | ต้องส่ง `sessionId` ไม่งั้นคืนผลว่าง · ผลมีโฆษณา (`isSponsored`) ปนมา → **ติดป้าย ไม่ซ่อน** · คืน `universeId` ไม่ใช่ `placeId` |
 | Live like / dislike counter | `GET games.roblox.com/v1/games/votes?universeIds=` | ✅ | ไม่ | ไม่ | phase 7 | RoPro คิดเงิน (Plus) — ของเราให้ฟรี |
 | Live player count | `GET games.roblox.com/v1/games?universeIds=` → `playing` | ✅ | ไม่ | ไม่ | phase 7 | |
 | Experience profile ต่อเกม | ของเรา | ✅ | ไม่ | local only | phase 4 | §21 |
@@ -86,7 +86,7 @@ feature กลุ่มนี้ **ไม่ใช่** RoPro parity ส่ว�
 
 | Feature | Source/API | Feasibility | Backend? | Privacy Risk | Status | Notes |
 |---|---|---|---|---|---|---|
-| Mutual friends | `GET friends.roblox.com/v1/users/{id}/friends` ทั้งสองฝั่งแล้ว intersect | 🟡 | ไม่ | ปานกลาง | phase 8 | ถ้า friend list เป็น private → ทำไม่ได้ ต้องบอกตรง ๆ |
+| Mutual friends | `GET friends.roblox.com/v1/users/{id}/friends` ทั้งสองฝั่งแล้ว intersect | 🟡 | ไม่ | ปานกลาง | **✅ ทำแล้ว** | verified 28 ส.ค. · **`name` ว่างเปล่า** → เทียบด้วย id แสดงได้แค่จำนวน · list ที่ private ตอบ "ไม่ทราบ" ไม่ใช่ "ไม่มีเพื่อนร่วม" · optional permission |
 | Last online | `POST presence.roblox.com/v1/presence/last-online` | ✅ | ไม่ | ปานกลาง | phase 8 | |
 | Copy UserId / quick actions | DOM | ✅ | ไม่ | ไม่ | phase 8 | |
 | Account value | inventory API + `ItemValueProvider` | 🟡 | ไม่ (ใช้ provider) | ปานกลาง | phase 9 | inventory ส่วนใหญ่ตั้ง private → คำนวณไม่ได้ ต้องแสดงว่า "inventory ไม่เปิดเผย" |
@@ -106,7 +106,7 @@ feature กลุ่มนี้ **ไม่ใช่** RoPro parity ส่ว�
 
 | Feature | Source/API | Feasibility | Backend? | Privacy Risk | Status | Notes |
 |---|---|---|---|---|---|---|
-| Custom theme / สี / background | CSS injection | ✅ | ไม่ | ไม่ | phase 8 | **asset ต้องเป็นของเราเอง** ห้ามใช้ธีมหรือรูปของ RoPro (§23) |
+| Custom theme / สี / background | CSS injection | ✅ | ไม่ | ไม่ | **✅ ทำแล้ว** | 6 preset ที่วาดเอง + custom 3 สี · **สีล้วน ไม่มี asset เลย** (§23) · panel รายงานว่า match กี่ส่วนบนหน้านั้นจริง |
 | ตาม dark/light ของ Roblox | อ่าน class ที่ Roblox ใส่ไว้ | ✅ | ไม่ | ไม่ | **phase 1** | UI ของเราทุกตัวใช้ token ชุดเดียวกัน |
 
 ## H. Trading

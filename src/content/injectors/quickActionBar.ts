@@ -57,13 +57,23 @@ export async function injectQuickActionBar(): Promise<void> {
     setStatus(status, describe(result, 'Launching Roblox...'));
   });
 
-  const smart = button('⚡ Smart Join', 'primary', () => undefined);
-  smart.disabled = true;
-  smart.title = 'Arrives in phase 3, once server scoring is implemented.';
+  /*
+   * Both of these were disabled placeholders long after the features behind them shipped:
+   * Smart Join arrived in phase 3 and this bar still said "arrives in phase 3", so the
+   * most prominent button the extension puts on a game page was dead. A placeholder is
+   * honest only until the thing exists; after that it is just wrong.
+   */
+  const smart = button('⚡ Smart Join', 'primary', async () => {
+    setStatus(status, 'Scoring the servers we can see...');
+    const result = await send({ type: 'join/smart', placeId });
+    setStatus(status, describe(result, 'Launching Roblox...'));
+  });
 
-  const priv = button('\u{1F512} Private', 'plain', () => undefined);
-  priv.disabled = true;
-  priv.title = 'Arrives in phase 6, once the private server API is verified against live traffic.';
+  const priv = button('\u{1F512} Private', 'plain', () => {
+    requestPanel('open', 'private');
+    setStatus(status, '');
+  });
+  priv.title = 'The private servers you own for this experience.';
 
   /*
    * Opens the in-page panel directly.
